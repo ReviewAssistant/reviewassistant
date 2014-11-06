@@ -1,5 +1,6 @@
-# Ignore IDEA generated folder.
-.idea
+# Ignore user specific IDEA components
+.idea/workspace.xml
+.idea/tasks.xml
 
 # Don't add temporary files
 *~
