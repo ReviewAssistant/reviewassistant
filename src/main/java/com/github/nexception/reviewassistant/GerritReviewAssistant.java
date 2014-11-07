@@ -24,15 +24,17 @@ THE SOFTWARE.
 
 
 
-package main.com.github.nexception.reviewassistant;
+package com.github.nexception.reviewassistant;
 
-import org.eclipse.jgit.lib.Repository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-/**
- * Created by William on 2014-11-06.
- */
 public class GerritReviewAssistant {
+    private static final Logger log = LoggerFactory.getLogger(GerritReviewAssistant.class);
 
+    public interface Factory {
+        GerritReviewAssistant create();
+    }
 
     public GerritReviewAssistant(){
 
