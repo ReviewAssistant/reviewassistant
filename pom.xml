@@ -34,7 +34,7 @@ SOFTWARE.
 
     <properties>
         <Gerrit-ApiType>plugin</Gerrit-ApiType>
-        <Gerrit-ApiVersion>2.10</Gerrit-ApiVersion>
+        <Gerrit-ApiVersion>2.10-rc0</Gerrit-ApiVersion>
     </properties>
 
     <build>
@@ -47,8 +47,8 @@ SOFTWARE.
                     <archive>
                         <manifestEntries>
                             <Gerrit-PluginName>ReviewAssistant</Gerrit-PluginName>
-                            <Gerrit-Module>com.github.nexception.reviewassistant.Module</Gerrit-Module>
-                            <Gerrit-HttpModule>com.github.nexception.reviewassistant.HttpModule</Gerrit-HttpModule>
+                            <!--<Gerrit-Module>com.github.nexception.reviewassistant.Module</Gerrit-Module>-->
+                            <!--<Gerrit-HttpModule>com.github.nexception.reviewassistant.HttpModule</Gerrit-HttpModule>-->
 
                             <Implementation-Vendor>Nexception</Implementation-Vendor>
                             <Implementation-URL>https://github.com/Nexception/reviewassistant/</Implementation-URL>

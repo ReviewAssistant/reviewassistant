@@ -4,3 +4,6 @@
 
 # Don't add temporary files
 *~
+
+# Maven output
+/target
