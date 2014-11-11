@@ -1,6 +1,7 @@
 # Ignore user specific IDEA components
 .idea/workspace.xml
 .idea/tasks.xml
+.idea/dictionaries
 
 # Don't add temporary files
 *~
