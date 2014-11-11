@@ -9,8 +9,7 @@ public class GerritReviewAssistantModule extends FactoryModule {
     @Override
     protected void configure() {
         DynamicSet.bind(binder(), ChangeListener.class).to(NewChangeEvent.class);
+        bind(Storage.class).to(SimpleStorage.class);
         factory(GerritReviewAssistant.Factory.class);
-
-
     }
 }
