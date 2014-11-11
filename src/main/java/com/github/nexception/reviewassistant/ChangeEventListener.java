@@ -10,14 +10,14 @@ import org.slf4j.LoggerFactory;
 
 
 
-class NewChangeEvent implements ChangeListener {
+class ChangeEventListener implements ChangeListener {
 
-    private static final Logger log = LoggerFactory.getLogger(NewChangeEvent.class);
+    private static final Logger log = LoggerFactory.getLogger(ChangeEventListener.class);
     private final GerritReviewAssistant.Factory gerritReviewAssistantFactory;
     private Storage storage;
 
     @Inject
-    NewChangeEvent(final GerritReviewAssistant.Factory gerritReviewAssistantFactory, Storage storage) {
+    ChangeEventListener(final GerritReviewAssistant.Factory gerritReviewAssistantFactory, Storage storage) {
         this.gerritReviewAssistantFactory = gerritReviewAssistantFactory;
         this.storage = storage;
     }
@@ -28,7 +28,7 @@ class NewChangeEvent implements ChangeListener {
         if(!(event instanceof PatchSetCreatedEvent))
             return;
         PatchSetCreatedEvent e = (PatchSetCreatedEvent) event;
-        log.info("Got new event:" + e.type + ": " + e.change.commitMessage);
-        storage.storeCalculation(new Calculation(e.change.id, e.patchSet.revision, 1, 2, 3));
+        log.info("Got new commit: " + e.patchSet.revision);
+        storage.storeCalculation(new Calculation(e.patchSet.revision, 1, 2, 3));
     }
 }

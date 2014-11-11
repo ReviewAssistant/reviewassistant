@@ -7,7 +7,13 @@ import com.google.inject.Inject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.nio.charset.Charset;
+import java.nio.file.Files;
 
 public class SimpleStorage implements Storage {
 
@@ -21,24 +27,35 @@ public class SimpleStorage implements Storage {
 
     @Override
     public void storeCalculation(Calculation calculation) {
-        log.debug("Attempting to store calculation " + calculation.toString());
-        try (PrintWriter printWriter = new PrintWriter(new File(dir, calculation.toString()))) {
+        File file = new File(dir, calculation.commitId.substring(0, 2) + File.separator + calculation.commitId.substring(2));
+        log.info("Writing calculation to " + file);
+        file.getParentFile().mkdirs();
+        try (BufferedWriter writer = Files.newBufferedWriter(file.toPath(), Charset.forName("UTF-8"))) {
             Gson gson = new Gson();
-            printWriter.print(gson.toJson(calculation));
-            printWriter.close();
-            log.debug("Stored calculation in file " + calculation.toString());
+            String s = gson.toJson(calculation);
+            writer.write(s, 0, s.length());
+            log.debug("Stored calculation in file " + file);
         } catch (FileNotFoundException e) {
-            log.error("Could not store file " + calculation.changeId + "-" + calculation.patchId);
-            log.error(e.getStackTrace().toString());
+            log.error("Could not find file " + file);
+            log.error(e.toString());
         } catch (IOException e) {
-            log.error("Could not store file " + calculation.changeId + "-" + calculation.patchId);
-            log.error(e.getStackTrace().toString());
+            log.error("Could not write to file " + file);
+            log.error(e.toString());
         }
     }
 
     @Override
-    public Calculation fetchCalculation(String identifier) {
-        //TODO
+    public Calculation fetchCalculation(String commitId) {
+        File file = new File(dir, commitId.substring(0, 2) + File.separator + commitId.substring(2));
+        log.info("Loading calculation from " + file);
+        try (BufferedReader reader = Files.newBufferedReader(file.toPath(), Charset.forName("UTF-8"))) {
+            Gson gson = new Gson();
+            Calculation calculation = gson.fromJson(reader.readLine(), Calculation.class);
+            log.info("Returning Calculation " + calculation.toString());
+            return calculation;
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
         return null;
     }
 }

@@ -6,15 +6,13 @@ package com.github.nexception.reviewassistant.models;
  * as well as a list of suitable reviewers.
  */
 public class Calculation {
-    public String changeId;
-    public String patchId;
+    public String commitId;
     public int totalTime;
     public int sessionTime;
     public int sessions;
 
-    public Calculation(String changeId, String patchId, int totalTime, int sessionTime, int sessions) {
-        this.changeId = changeId;
-        this.patchId = patchId;
+    public Calculation(String commitId, int totalTime, int sessionTime, int sessions) {
+        this.commitId = commitId;
         this.totalTime = totalTime;
         this.sessionTime = sessionTime;
         this.sessions = sessions;
@@ -22,6 +20,6 @@ public class Calculation {
 
     @Override
     public String toString() {
-        return changeId + "-" + patchId;
+        return commitId;
     }
 }
