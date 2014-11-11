@@ -3,6 +3,9 @@
   <component name="EntryPointsManager">
     <entry_points version="2.0" />
   </component>
+  <component name="FrameworkDetectionExcludesConfiguration">
+    <file type="gwt" url="file://$PROJECT_DIR$" />
+  </component>
   <component name="IdProvider" IDEtalkID="11C57B850FE838F53EEF9BF094C97ADB" />
   <component name="MavenProjectsManager">
     <option name="originalFiles">
@@ -13,4 +16,3 @@
   </component>
   <component name="ProjectRootManager" version="2" languageLevel="JDK_1_6" assert-keyword="true" jdk-15="true" project-jdk-name="1.7" project-jdk-type="JavaSDK" />
 </project>
-

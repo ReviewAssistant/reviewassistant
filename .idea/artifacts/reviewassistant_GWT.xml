@@ -1,0 +1,8 @@
+<component name="ArtifactManager">
+  <artifact name="reviewassistant:GWT">
+    <output-path>$PROJECT_DIR$/target/classes/static</output-path>
+    <root id="root">
+      <element id="gwt-compiler-output" facet="reviewassistant/gwt/GWT" />
+    </root>
+  </artifact>
+</component>

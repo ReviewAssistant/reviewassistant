@@ -1,0 +1,13 @@
+<component name="libraryTable">
+  <library name="Maven: com.google.gerrit:gerrit-plugin-gwtui:2.10-rc0">
+    <CLASSES>
+      <root url="jar://$MAVEN_REPOSITORY$/com/google/gerrit/gerrit-plugin-gwtui/2.10-rc0/gerrit-plugin-gwtui-2.10-rc0.jar!/" />
+    </CLASSES>
+    <JAVADOC>
+      <root url="jar://$MAVEN_REPOSITORY$/com/google/gerrit/gerrit-plugin-gwtui/2.10-rc0/gerrit-plugin-gwtui-2.10-rc0-javadoc.jar!/" />
+    </JAVADOC>
+    <SOURCES>
+      <root url="jar://$MAVEN_REPOSITORY$/com/google/gerrit/gerrit-plugin-gwtui/2.10-rc0/gerrit-plugin-gwtui-2.10-rc0-sources.jar!/" />
+    </SOURCES>
+  </library>
+</component>

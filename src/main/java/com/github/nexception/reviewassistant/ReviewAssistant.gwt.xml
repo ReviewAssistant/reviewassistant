@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module rename-to="reviewassistant_plugin">
+    <!-- Inherit the core Web Toolkit stuff. -->
+    <inherits name="com.google.gwt.user.User"/>
+    <!-- Other module inherits -->
+    <inherits name="com.google.gerrit.Plugin"/>
+    <inherits name="com.google.gwt.http.HTTP"/>
+    <!-- Using GWT built-in themes adds a number of static -->
+    <!-- resources to the plugin. No theme inherits lines were -->
+    <!-- added in order to make this plugin as simple as possible -->
+    <!-- Specify the app entry point class. -->
+    <entry-point class="${package}.client.EntryPoint"/>
+    <stylesheet src="styles.css"/>
+</module>
