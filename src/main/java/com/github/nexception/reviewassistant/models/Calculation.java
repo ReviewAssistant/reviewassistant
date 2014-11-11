@@ -1,7 +1,7 @@
 package com.github.nexception.reviewassistant.models;
 
 /**
- * A class tht represents a ReviewAssistant calculation.
+ * A class that represents a ReviewAssistant calculation.
  * The class contains review time and partitioning suggestions,
  * as well as a list of suitable reviewers.
  */
