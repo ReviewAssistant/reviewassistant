@@ -48,7 +48,7 @@ SOFTWARE.
                         <manifestEntries>
                             <Gerrit-PluginName>ReviewAssistant</Gerrit-PluginName>
                             <Gerrit-Module>com.github.nexception.reviewassistant.GerritReviewAssistantModule</Gerrit-Module>
-                            <!--<Gerrit-HttpModule>com.github.nexception.reviewassistant.HttpModule</Gerrit-HttpModule>-->
+                            <Gerrit-HttpModule>com.github.nexception.reviewassistant.HttpModule</Gerrit-HttpModule>
 
                             <Implementation-Vendor>Nexception</Implementation-Vendor>
                             <Implementation-URL>https://github.com/Nexception/reviewassistant/</Implementation-URL>
