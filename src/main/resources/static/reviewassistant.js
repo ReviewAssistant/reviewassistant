@@ -19,5 +19,10 @@ Gerrit.install(function(self) {
             b));
         f.focus();
     }
+    function printReviewChanges{
+
+
+    }
+
     self.onAction('revision', 'reviewassistant', onSayHello);
 });
