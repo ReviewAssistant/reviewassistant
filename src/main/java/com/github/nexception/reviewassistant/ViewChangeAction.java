@@ -36,9 +36,6 @@ import com.google.gerrit.server.change.RevisionResource;
 import com.google.inject.Inject;
 import com.google.inject.Provider;
 
-/**
- * Created by simon on 11/11/14.
- */
 public class ViewChangeAction implements UiAction<RevisionResource>, RestModifyView<RevisionResource, ViewChangeAction.Input> {
 
     private Provider<ChangeUserName.CurrentUser> user;
