@@ -41,6 +41,11 @@ import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 
+/**
+ * The simple storage class writes to the plugin's data directory ({gerrit url}/plugins/ReviewAssistant).
+ * The structure follows that of git's object directory, which means that the first two letters of the
+ * commit's SHA-1 is used as name for the sub directory, and the rest of the SHA-1 is used as file name.
+ */
 public class SimpleStorage implements Storage {
 
     private static final Logger log = LoggerFactory.getLogger(SimpleStorage.class);
@@ -54,7 +59,7 @@ public class SimpleStorage implements Storage {
     @Override
     public void storeCalculation(Calculation calculation) {
         File file = new File(dir, calculation.commitId.substring(0, 2) + File.separator + calculation.commitId.substring(2));
-        log.info("Writing calculation to " + file);
+        log.debug("Writing calculation to " + file);
         file.getParentFile().mkdirs();
         try (BufferedWriter writer = Files.newBufferedWriter(file.toPath(), Charset.forName("UTF-8"))) {
             Gson gson = new Gson();
@@ -73,15 +78,20 @@ public class SimpleStorage implements Storage {
     @Override
     public Calculation fetchCalculation(String commitId) {
         File file = new File(dir, commitId.substring(0, 2) + File.separator + commitId.substring(2));
-        log.info("Loading calculation from " + file);
+        log.debug("Loading calculation from " + file);
         try (BufferedReader reader = Files.newBufferedReader(file.toPath(), Charset.forName("UTF-8"))) {
             Gson gson = new Gson();
             Calculation calculation = gson.fromJson(reader.readLine(), Calculation.class);
             log.info("Returning Calculation " + calculation.toString());
             return calculation;
         } catch (IOException e) {
-            e.printStackTrace();
+            log.error("Could not find calculation for " + commitId);
+            log.error(e.toString());
         }
-        return null;
+
+        /**
+         * If no calculation is found, maybe one should be triggered?
+         */
+        return new Calculation("not found", 0, 0, 0);
     }
 }
