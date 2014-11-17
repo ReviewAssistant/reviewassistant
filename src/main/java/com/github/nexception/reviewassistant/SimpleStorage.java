@@ -92,6 +92,6 @@ public class SimpleStorage implements Storage {
         /**
          * If no calculation is found, maybe one should be triggered?
          */
-        return new Calculation("not found", 0, 0, 0);
+        return null;
     }
 }
