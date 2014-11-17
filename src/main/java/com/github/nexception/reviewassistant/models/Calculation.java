@@ -7,19 +7,15 @@ package com.github.nexception.reviewassistant.models;
  */
 public class Calculation {
     public String commitId;
-    public int totalTime;
+    public int totalReviewTime;
     public int sessionTime;
     public int sessions;
 
-    public Calculation(String commitId, int totalTime, int sessionTime, int sessions) {
-        this.commitId = commitId;
-        this.totalTime = totalTime;
-        this.sessionTime = sessionTime;
-        this.sessions = sessions;
+    public Calculation() {
+        this.commitId = "nothing";
+        this.totalReviewTime = 0;
+        this.sessionTime = 0;
+        this.sessions = 0;
     }
 
-    @Override
-    public String toString() {
-        return commitId;
-    }
 }
