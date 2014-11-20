@@ -48,7 +48,7 @@ public class RestServlet extends HttpServlet {
          */
         writer.write("<p>This text comes from RestServlet.java</p>");
         Calculation calculation = storage.fetchCalculation(input.commitId);
-        resp.getWriter().write("<p>" + calculation.toString() + "</p>");
+        resp.getWriter().write("");
     }
 
     private class Input {
