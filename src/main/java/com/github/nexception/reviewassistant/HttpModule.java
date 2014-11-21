@@ -35,6 +35,5 @@ public class HttpModule extends HttpPluginModule{
     @Override
     protected void configureServlets() {
         DynamicSet.bind(binder(), WebUiPlugin.class).toInstance(new JavaScriptPlugin("reviewassistant.js"));
-       // serve("/advice").with(RestServlet.class);
     }
 }
