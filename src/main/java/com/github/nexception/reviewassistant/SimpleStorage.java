@@ -42,7 +42,7 @@ import java.nio.charset.Charset;
 import java.nio.file.Files;
 
 /**
- * The simple storage class writes to the plugin's data directory ({gerrit url}/plugins/ReviewAssistant).
+ * This implementation of Storage writes to the plugin's data directory ({gerrit url}/plugins/ReviewAssistant).
  * The structure follows that of git's object directory, which means that the first two letters of the
  * commit's SHA-1 is used as name for the sub directory, and the rest of the SHA-1 is used as file name.
  */
@@ -52,7 +52,7 @@ public class SimpleStorage implements Storage {
     private File dir;
 
     @Inject
-    SimpleStorage(@PluginData java.io.File dir) {
+    SimpleStorage(@PluginData File dir) {
         this.dir = dir;
     }
 
@@ -85,7 +85,7 @@ public class SimpleStorage implements Storage {
             log.info("Returning Calculation " + calculation.toString());
             return calculation;
         } catch (IOException e) {
-            log.error("Could not find calculation for " + commitId);
+            log.error("Could not read calculation file for " + commitId);
             log.error(e.toString());
         }
 
