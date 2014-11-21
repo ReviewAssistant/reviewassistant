@@ -25,6 +25,7 @@ public class Algorithm {
         calculation.commitId = event.patchSet.revision;
         calculation.totalReviewTime = calculateReviewTime(event);
         calculation.sessions = calculateReviewSessions(calculateReviewTime(event));
+        calculation.sessionTime = calculateReviewTime(event) / calculateReviewSessions(calculateReviewTime(event));
 
         return calculation;
     }
