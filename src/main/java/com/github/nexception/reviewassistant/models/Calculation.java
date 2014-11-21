@@ -2,8 +2,7 @@ package com.github.nexception.reviewassistant.models;
 
 /**
  * A class that represents a ReviewAssistant calculation.
- * The class contains review time and partitioning suggestions,
- * as well as a list of suitable reviewers.
+ * The class contains review time and review session suggestions.
  */
 public class Calculation {
     public String commitId;
