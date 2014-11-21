@@ -20,15 +20,8 @@ public class GetAdvice implements RestReadView<RevisionResource> {
     }
 
     @Override
-    public Object apply(RevisionResource resource) throws AuthException, BadRequestException, ResourceConflictException, Exception {
+    public Object apply(RevisionResource resource) throws AuthException, BadRequestException, ResourceConflictException {
         Calculation calculation = storage.fetchCalculation(resource.getPatchSet().getRevision().get());
-        return resource.getPatchSet().getRevision().get(); //Prints commit-ID to "change_plugins"
+        return calculation;
     }
-
-    public class Output {
-        protected String name;
-        //Add more here
-    }
-
-
 }
