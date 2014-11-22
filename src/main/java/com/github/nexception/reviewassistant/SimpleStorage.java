@@ -1,29 +1,3 @@
-/*
-The MIT License (MIT)
-
-Copyright (c) 2014 Gustav Jansson Ekstrand (gustav.jp@live.se), Simon Wessel (nllptr), William Phan (william.da.phan@gmail.com)
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in
-all copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-THE SOFTWARE.
-*/
-
-
-
 package com.github.nexception.reviewassistant;
 
 import com.github.nexception.reviewassistant.models.Calculation;
@@ -42,7 +16,7 @@ import java.nio.charset.Charset;
 import java.nio.file.Files;
 
 /**
- * The simple storage class writes to the plugin's data directory ({gerrit url}/plugins/ReviewAssistant).
+ * This implementation of Storage writes to the plugin's data directory ({gerrit url}/plugins/ReviewAssistant).
  * The structure follows that of git's object directory, which means that the first two letters of the
  * commit's SHA-1 is used as name for the sub directory, and the rest of the SHA-1 is used as file name.
  */
@@ -52,7 +26,7 @@ public class SimpleStorage implements Storage {
     private File dir;
 
     @Inject
-    SimpleStorage(@PluginData java.io.File dir) {
+    SimpleStorage(@PluginData File dir) {
         this.dir = dir;
     }
 
@@ -85,7 +59,7 @@ public class SimpleStorage implements Storage {
             log.info("Returning Calculation " + calculation.toString());
             return calculation;
         } catch (IOException e) {
-            log.error("Could not find calculation for " + commitId);
+            log.error("Could not read calculation file for " + commitId);
             log.error(e.toString());
         }
 
