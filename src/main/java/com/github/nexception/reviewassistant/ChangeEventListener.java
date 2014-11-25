@@ -15,16 +15,15 @@ import org.slf4j.LoggerFactory;
 class ChangeEventListener implements ChangeListener {
 
     private static final Logger log = LoggerFactory.getLogger(ChangeEventListener.class);
-  // private final GerritReviewAssistan.Factory gerritReviewAssistantFactory;
+    private final ReviewAssistant.Factory reviewAssistantFactory;
     private Storage storage;
     private WorkQueue workQueue;
 
     @Inject
-  //  ChangeEventListener(final GerritReviewAssistant.Factory gerritReviewAssistantFactory, Storage storage) {
-    ChangeEventListener(Storage storage, WorkQueue workQueue) {
-       // this.gerritReviewAssistantFactory = gerritReviewAssistantFactory;
+    ChangeEventListener(final ReviewAssistant.Factory reviewAssistantFactory, Storage storage, WorkQueue workQueue) {
         this.storage = storage;
         this.workQueue = workQueue;
+        this.reviewAssistantFactory = reviewAssistantFactory;
     }
 
 
@@ -35,5 +34,12 @@ class ChangeEventListener implements ChangeListener {
         PatchSetCreatedEvent e = (PatchSetCreatedEvent) event;
         log.info("Received new commit: " + e.patchSet.revision);
         storage.storeCalculation(ReviewAssistant.calculate(e));
+        final Runnable task = reviewAssistantFactory.create();
+        workQueue.getDefaultQueue().submit(new Runnable() {
+            @Override
+            public void run() {
+                task.run();
+            }
+        });
     }
 }

@@ -2,6 +2,7 @@ package com.github.nexception.reviewassistant;
 
 import com.github.nexception.reviewassistant.models.Calculation;
 import com.google.gerrit.server.events.PatchSetCreatedEvent;
+import com.google.inject.Inject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -9,9 +10,18 @@ import org.slf4j.LoggerFactory;
  * A class for calculating recommended review time and
  * recommended reviewers.
  */
-public class ReviewAssistant {
+public class ReviewAssistant implements Runnable {
+
+    @Inject
+    public ReviewAssistant() {
+
+    }
 
     private static final Logger log = LoggerFactory.getLogger(ReviewAssistant.class);
+
+    public interface Factory {
+        ReviewAssistant create();
+    }
 
     /**
      * Returns a Calculation object with all relevant information
@@ -31,6 +41,8 @@ public class ReviewAssistant {
 
         return calculation;
     }
+
+
 
     /**
      * Returns the total amount of time in minutes recommended for a review.
@@ -86,6 +98,11 @@ public class ReviewAssistant {
     private static int calculateFiveMinuteBlocks(int minutes) {
         int fiveMinuteBlocks = (int) Math.ceil((minutes % 60) / 5.0);
         return fiveMinuteBlocks;
+    }
+
+    @Override
+    public void run() {
+        log.info("Test run");
     }
 }
 
