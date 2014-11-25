@@ -26,12 +26,16 @@ public class GetAdvice implements RestReadView<RevisionResource> {
     public Object apply(RevisionResource resource) throws AuthException, BadRequestException, ResourceConflictException {
         Calculation calculation = storage.fetchCalculation(resource.getPatchSet().getRevision().get());
         String advice = "<div>Reviewers should spend ";
-        if(calculation.hourBlocks > 0) {
-            advice += calculation.hourBlocks + " hours and ";
-        }
-        advice += (calculation.fiveMinuteBlocks * 5) + " minutes reviewing this change.</div>";
-        if(calculation.sessions > 1) {
-            advice += "<div>This could be split up in " + calculation.sessions + " sessions.</div>";
+        try {
+            if (calculation.hourBlocks > 0) {
+                advice += calculation.hourBlocks + " hours and ";
+            }
+            advice += (calculation.fiveMinuteBlocks * 5) + " minutes reviewing this change.</div>";
+            if (calculation.sessions > 1) {
+                advice += "<div>This could be split up in " + calculation.sessions + " sessions.</div>";
+            }
+        } catch (NullPointerException e) {
+            advice = "<div>No advice exists for this change.</div>";
         }
 
         return advice;
