@@ -8,9 +8,7 @@ Gerrit.install(function(self) {
             url,
             function (r) {
                 console.log("Got advice: " + r);
-                var totalTime = "<div>You should spend " + r.total_review_time + " minutes reviewing this change.";
-                var sessions = "<div>Sessions: " + r.sessions +" for " + r.session_time + " minutes each.";
-                change_plugins.innerHTML = "<div id=\"reviewAssistant\">"+ totalTime +" "+ sessions + "</div>";
+                change_plugins.innerHTML = "<div id=\"reviewAssistant\">"+ r + "</div>";
             });
     }
     self.on('showchange', print);
