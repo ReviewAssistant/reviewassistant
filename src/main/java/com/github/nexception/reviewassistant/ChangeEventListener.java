@@ -3,6 +3,7 @@ package com.github.nexception.reviewassistant;
 import com.google.gerrit.common.ChangeListener;
 import com.google.gerrit.server.events.ChangeEvent;
 import com.google.gerrit.server.events.PatchSetCreatedEvent;
+import com.google.gerrit.server.git.WorkQueue;
 import com.google.inject.Inject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,12 +17,14 @@ class ChangeEventListener implements ChangeListener {
     private static final Logger log = LoggerFactory.getLogger(ChangeEventListener.class);
   // private final GerritReviewAssistan.Factory gerritReviewAssistantFactory;
     private Storage storage;
+    private WorkQueue workQueue;
 
     @Inject
   //  ChangeEventListener(final GerritReviewAssistant.Factory gerritReviewAssistantFactory, Storage storage) {
-    ChangeEventListener(Storage storage) {
+    ChangeEventListener(Storage storage, WorkQueue workQueue) {
        // this.gerritReviewAssistantFactory = gerritReviewAssistantFactory;
         this.storage = storage;
+        this.workQueue = workQueue;
     }
 
 
