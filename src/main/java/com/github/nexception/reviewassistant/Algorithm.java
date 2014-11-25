@@ -14,8 +14,8 @@ public class Algorithm {
     private static final Logger log = LoggerFactory.getLogger(Algorithm.class);
 
     /**
-     * Returns a Calculation object with all relevant information regarding
-     * a review for a patch set.
+     * Returns a Calculation object with all relevant information
+     * regarding a review for a patch set.
      * @param event the event for a patch set
      * @return      the Calculation object for a review
      */
@@ -24,6 +24,8 @@ public class Algorithm {
         Calculation calculation = new Calculation();
         calculation.commitId = event.patchSet.revision;
         calculation.totalReviewTime = calculateReviewTime(event);
+        calculation.hourBlocks = calculateHourBlocks(calculateReviewTime(event));
+        calculation.fiveMinuteBlocks = calculateFiveMinuteBlocks(calculateReviewTime(event));
         calculation.sessions = calculateReviewSessions(calculateReviewTime(event));
         calculation.sessionTime = calculateReviewTime(event) / calculateReviewSessions(calculateReviewTime(event));
 
@@ -61,6 +63,29 @@ public class Algorithm {
             sessions = 1;
         }
         return sessions;
+    }
+
+
+    /**
+     * Returns the amount of hour blocks the total review time can be
+     * divided into.
+     * @param minutes the total amount of time recommended for a review
+     * @return        the amount of hour blocks
+     */
+    private static int calculateHourBlocks(int minutes) {
+        int hourBlocks = minutes / 60;
+        return hourBlocks;
+    }
+
+    /**
+     * Returns the amount of 5 minute blocks the review time can be
+     * divided into, after it has been divided into hour blocks.
+     * @param minutes the total amount of time recommended for a review
+     * @return        the amount of 5 minute blocks
+     */
+    private static int calculateFiveMinuteBlocks(int minutes) {
+        int fiveMinuteBlocks = (int) Math.ceil((minutes % 60) / 5.0);
+        return fiveMinuteBlocks;
     }
 }
 
