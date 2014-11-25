@@ -14,12 +14,13 @@ import org.slf4j.LoggerFactory;
 class ChangeEventListener implements ChangeListener {
 
     private static final Logger log = LoggerFactory.getLogger(ChangeEventListener.class);
-    private final GerritReviewAssistant.Factory gerritReviewAssistantFactory;
+  // private final GerritReviewAssistan.Factory gerritReviewAssistantFactory;
     private Storage storage;
 
     @Inject
-    ChangeEventListener(final GerritReviewAssistant.Factory gerritReviewAssistantFactory, Storage storage) {
-        this.gerritReviewAssistantFactory = gerritReviewAssistantFactory;
+  //  ChangeEventListener(final GerritReviewAssistant.Factory gerritReviewAssistantFactory, Storage storage) {
+    ChangeEventListener(Storage storage) {
+       // this.gerritReviewAssistantFactory = gerritReviewAssistantFactory;
         this.storage = storage;
     }
 
