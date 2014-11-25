@@ -9,9 +9,9 @@ import org.slf4j.LoggerFactory;
  * A class for calculating recommended review time and
  * recommended reviewers.
  */
-public class Algorithm {
+public class ReviewAssistant {
 
-    private static final Logger log = LoggerFactory.getLogger(Algorithm.class);
+    private static final Logger log = LoggerFactory.getLogger(ReviewAssistant.class);
 
     /**
      * Returns a Calculation object with all relevant information

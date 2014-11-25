@@ -31,6 +31,6 @@ class ChangeEventListener implements ChangeListener {
             return;
         PatchSetCreatedEvent e = (PatchSetCreatedEvent) event;
         log.info("Received new commit: " + e.patchSet.revision);
-        storage.storeCalculation(Algorithm.calculate(e));
+        storage.storeCalculation(ReviewAssistant.calculate(e));
     }
 }
