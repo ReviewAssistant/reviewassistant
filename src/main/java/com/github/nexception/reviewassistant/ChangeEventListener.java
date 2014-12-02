@@ -36,8 +36,6 @@ class ChangeEventListener implements ChangeListener {
     private WorkQueue workQueue;
     private GitRepositoryManager repoManager;
     private SchemaFactory<ReviewDb> schemaFactory;
-    private ReviewDb db;
-
 
     @Inject
     ChangeEventListener(final ReviewAssistant.Factory reviewAssistantFactory, Storage storage, WorkQueue workQueue, GitRepositoryManager repoManager, final SchemaFactory<ReviewDb> schemaFactory) {
@@ -51,12 +49,14 @@ class ChangeEventListener implements ChangeListener {
 
     @Override
     public void onChangeEvent(ChangeEvent changeEvent) {
-        if(!(changeEvent instanceof PatchSetCreatedEvent))
+        if (!(changeEvent instanceof PatchSetCreatedEvent))
             return;
         PatchSetCreatedEvent event = (PatchSetCreatedEvent) changeEvent;
         log.info("Received new commit: " + event.patchSet.revision);
+
+        //TODO: Move this to the servlet.
         storage.storeCalculation(ReviewAssistant.calculate(event));
-        //-----------------------------------------------------
+
         Project.NameKey projectName = new Project.NameKey(event.change.project);
 
         Repository repo;
@@ -74,20 +74,20 @@ class ChangeEventListener implements ChangeListener {
         final RevWalk rw = new RevWalk(repo);
 
 
-        try{
+        try {
             db = schemaFactory.open();
-            try{
+            try {
                 Change.Id changeId = new Change.Id(Integer.parseInt(event.change.number));
                 PatchSet.Id psId = new PatchSet.Id(changeId, Integer.parseInt(event.patchSet.number));
                 PatchSet ps = db.patchSets().get(psId);
-                if(ps == null){
-                    log.warn("No patch set, " + psId.get());
+                if (ps == null) {
+                    log.warn("Could not find patch set " + psId.get());
                     return;
                 }
                 // psId.getParentKey = changeID
                 Change change = db.changes().get(psId.getParentKey());
                 if(change == null){
-                    log.warn("No change" + psId.getParentKey());
+                    log.warn("Could not find change " + psId.getParentKey());
                     return;
                 }
 
@@ -97,7 +97,6 @@ class ChangeEventListener implements ChangeListener {
                 workQueue.getDefaultQueue().submit(new Runnable() {
                     @Override
                     public void run() {
-                        log.info("Run");
                         task.run();
                     }
                 });
@@ -108,7 +107,7 @@ class ChangeEventListener implements ChangeListener {
                 log.error(e.getMessage(), e);
             } catch (IOException e) {
                 log.error(e.getMessage(), e);
-            } finally{
+            } finally {
                 db.close();
             }
 
