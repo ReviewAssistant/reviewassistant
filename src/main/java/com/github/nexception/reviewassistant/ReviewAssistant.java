@@ -1,10 +1,23 @@
 package com.github.nexception.reviewassistant;
 
 import com.github.nexception.reviewassistant.models.Calculation;
+import com.google.gerrit.reviewdb.client.Account;
+import com.google.gerrit.reviewdb.client.Change;
+import com.google.gerrit.reviewdb.client.Patch.ChangeType;
+import com.google.gerrit.reviewdb.client.PatchSet;
 import com.google.gerrit.server.events.PatchSetCreatedEvent;
+import com.google.gerrit.server.patch.PatchList;
+import com.google.gerrit.server.patch.PatchListCache;
+import com.google.gerrit.server.patch.PatchListEntry;
+import com.google.gerrit.server.patch.PatchListNotAvailableException;
 import com.google.inject.Inject;
+import com.google.inject.assistedinject.Assisted;
+import org.eclipse.jgit.revwalk.RevCommit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * A class for calculating recommended review time and
@@ -12,15 +25,25 @@ import org.slf4j.LoggerFactory;
  */
 public class ReviewAssistant implements Runnable {
 
-    @Inject
-    public ReviewAssistant() {
-
-    }
+    private PatchListCache patchListCache;
+    private Change change;
+    private PatchSet ps;
+    private RevCommit commit;
 
     private static final Logger log = LoggerFactory.getLogger(ReviewAssistant.class);
 
     public interface Factory {
-        ReviewAssistant create();
+        ReviewAssistant create(RevCommit commit, Change change, PatchSet ps);
+    }
+
+    @Inject
+    public ReviewAssistant(final PatchListCache patchListCache,
+                           @Assisted final RevCommit commit, @Assisted final Change change,
+                           @Assisted final PatchSet ps) {
+        this.commit = commit;
+        this.change = change;
+        this.ps = ps;
+        this.patchListCache = patchListCache;
     }
 
     /**
@@ -102,7 +125,29 @@ public class ReviewAssistant implements Runnable {
 
     @Override
     public void run() {
-        log.info("Test run");
+        PatchList patchList;
+        Map<Account, Integer> reviewers = new HashMap<>(); // Store list of reviewers
+        try {
+            log.info("First try");
+            patchList = patchListCache.get(change, ps);
+        } catch (PatchListNotAvailableException e) {
+            log.error("Patchlist is not available {}", change.getKey(), e);
+            return;
+        }
+
+        if (commit.getParentCount() != 1) {
+            log.error("No merge/initial");
+            return;
+        }
+
+        for (PatchListEntry entry : patchList.getPatches()) {
+            log.info("Entries");
+            if (entry.getChangeType() == ChangeType.MODIFIED || // Only blame at the moment, check other ChangeType
+                    entry.getChangeType() == ChangeType.DELETED) {
+                log.info("Found modified/deleted file:");
+                log.info(entry.getNewName()); // Entry from the list of files
+            }
+        }
     }
 }
 
