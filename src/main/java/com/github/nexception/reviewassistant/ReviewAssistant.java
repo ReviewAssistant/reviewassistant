@@ -80,7 +80,7 @@ public class ReviewAssistant implements Runnable {
         log.info("Insertions: " + event.patchSet.sizeInsertions);
         log.info("Deletions: " + event.patchSet.sizeDeletions);
         int minutes = (int) Math.ceil(lines / 5);
-        if(minutes < 5) {
+        if (minutes < 5) {
             minutes = 5;
         }
         return minutes;
@@ -94,7 +94,7 @@ public class ReviewAssistant implements Runnable {
      */
     private static int calculateReviewSessions(int minutes) {
         int sessions = Math.round(minutes / 60);
-        if(sessions < 1) {
+        if (sessions < 1) {
             sessions = 1;
         }
         return sessions;
@@ -126,12 +126,12 @@ public class ReviewAssistant implements Runnable {
     @Override
     public void run() {
         PatchList patchList;
-        Map<Account, Integer> reviewers = new HashMap<>(); // Store list of reviewers
+        //TODO: Store reviewers in this map.
+        Map<Account, Integer> reviewers = new HashMap<>();
         try {
-            log.info("First try");
             patchList = patchListCache.get(change, ps);
         } catch (PatchListNotAvailableException e) {
-            log.error("Patchlist is not available {}", change.getKey(), e);
+            log.error("Patchlist is not available for {}", change.getKey(), e);
             return;
         }
 
@@ -142,10 +142,15 @@ public class ReviewAssistant implements Runnable {
 
         for (PatchListEntry entry : patchList.getPatches()) {
             log.info("Entries");
-            if (entry.getChangeType() == ChangeType.MODIFIED || // Only blame at the moment, check other ChangeType
+            /**
+             * Only git blame at the moment. If other methods are used in the future,
+             * other change types might be required.
+             */
+            if (entry.getChangeType() == ChangeType.MODIFIED ||
                     entry.getChangeType() == ChangeType.DELETED) {
+                //TODO: Magic
                 log.info("Found modified/deleted file:");
-                log.info(entry.getNewName()); // Entry from the list of files
+                log.info(entry.getNewName());
             }
         }
     }
