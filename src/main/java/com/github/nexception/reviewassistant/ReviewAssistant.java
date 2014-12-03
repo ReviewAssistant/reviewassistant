@@ -80,7 +80,7 @@ public class ReviewAssistant implements Runnable {
         int minutes = (int) Math.ceil(lines / 5);
         minutes = (int) Math.ceil(minutes / 5.0);
         minutes = minutes * 5;
-        if(minutes < 5) {
+        if (minutes < 5) {
             minutes = 5;
         }
         return minutes;
