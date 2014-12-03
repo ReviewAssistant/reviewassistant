@@ -57,15 +57,13 @@ public class ReviewAssistant implements Runnable {
         Calculation calculation = new Calculation();
         calculation.commitId = event.patchSet.revision;
         calculation.totalReviewTime = calculateReviewTime(event);
-        calculation.hourBlocks = calculateHourBlocks(calculateReviewTime(event));
-        calculation.fiveMinuteBlocks = calculateFiveMinuteBlocks(calculateReviewTime(event));
+        calculation.hours = calculateReviewTime(event) / 60;
+        calculation.minutes = calculateReviewTime(event) % 60;
         calculation.sessions = calculateReviewSessions(calculateReviewTime(event));
-        calculation.sessionTime = calculateReviewTime(event) / calculateReviewSessions(calculateReviewTime(event));
+        calculation.sessionTime = 60;
 
         return calculation;
     }
-
-
 
     /**
      * Returns the total amount of time in minutes recommended for a review.
@@ -80,6 +78,8 @@ public class ReviewAssistant implements Runnable {
         log.info("Insertions: " + event.patchSet.sizeInsertions);
         log.info("Deletions: " + event.patchSet.sizeDeletions);
         int minutes = (int) Math.ceil(lines / 5);
+        minutes = (int) Math.ceil(minutes / 5.0);
+        minutes = minutes * 5;
         if(minutes < 5) {
             minutes = 5;
         }
@@ -94,33 +94,10 @@ public class ReviewAssistant implements Runnable {
      */
     private static int calculateReviewSessions(int minutes) {
         int sessions = Math.round(minutes / 60);
-        if(sessions < 1) {
+        if (sessions < 1) {
             sessions = 1;
         }
         return sessions;
-    }
-
-
-    /**
-     * Returns the amount of hour blocks the total review time can be
-     * divided into.
-     * @param minutes the total amount of time recommended for a review
-     * @return        the amount of hour blocks
-     */
-    private static int calculateHourBlocks(int minutes) {
-        int hourBlocks = minutes / 60;
-        return hourBlocks;
-    }
-
-    /**
-     * Returns the amount of 5 minute blocks the review time can be
-     * divided into, after it has been divided into hour blocks.
-     * @param minutes the total amount of time recommended for a review
-     * @return        the amount of 5 minute blocks
-     */
-    private static int calculateFiveMinuteBlocks(int minutes) {
-        int fiveMinuteBlocks = (int) Math.ceil((minutes % 60) / 5.0);
-        return fiveMinuteBlocks;
     }
 
     @Override

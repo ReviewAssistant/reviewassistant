@@ -30,14 +30,18 @@ public class GetAdvice implements RestReadView<RevisionResource> {
         String advice = "<div style=\"padding-top: 10px;\"><strong>ReviewAssistant</strong>";
         advice += "<div>Reviewers should spend <strong>";
         try {
-            if (calculation.hourBlocks == 1) {
-                advice += calculation.hourBlocks + " hour</strong> and <strong>";
-            } else if(calculation.hourBlocks > 1) {
-                advice += calculation.hourBlocks + " hours</strong> and <strong>";
+            if (calculation.hours == 1) {
+                advice += calculation.hours + " hour</strong> and <strong>";
+            } else if (calculation.hours > 1) {
+                advice += calculation.hours + " hours</strong> ";
             }
-            advice += (calculation.fiveMinuteBlocks * 5) + " minutes</strong> reviewing this change.</div>";
+            if (calculation.minutes > 0) {
+                advice += "and <strong>" + calculation.minutes + " minutes</strong> ";
+            }
+            advice += "reviewing this change.</div>";
             if (calculation.sessions > 1) {
-                advice += "<div>This should be split up in <strong>" + calculation.sessions + " sessions</strong>.</div>";
+                advice += "<div>This should be split up in <strong>" + calculation.sessions +
+                        " to " + (calculation.sessions + 1) + " sessions</strong>.</div>";
             }
         } catch (NullPointerException e) {
             advice = "<div>No advice exists for this change.</div>";
