@@ -27,17 +27,24 @@ public class GetAdvice implements RestReadView<RevisionResource> {
     @Override
     public Object apply(RevisionResource resource) throws AuthException, BadRequestException, ResourceConflictException {
         Calculation calculation = storage.fetchCalculation(resource.getPatchSet().getRevision().get());
-        String advice = "<div style=\"padding-top: 10px;\"><strong>ReviewAssistant</strong>";
-        advice += "<div>Reviewers should spend <strong>";
+        String advice = "<div id=\"reviewAssistant\" style=\"padding-top: 10px;\" ><strong>ReviewAssistant</strong>";
+        advice += "<div>Reviewers should spend ";
         try {
-            if (calculation.hourBlocks == 1) {
-                advice += calculation.hourBlocks + " hour</strong> and <strong>";
-            } else if(calculation.hourBlocks > 1) {
-                advice += calculation.hourBlocks + " hours</strong> and <strong>";
+            if (calculation.hours == 1) {
+                advice += "<strong>" + calculation.hours + " hour</strong> ";
+            } else if (calculation.hours > 1) {
+                advice += "<strong>" + calculation.hours + " hours</strong> ";
             }
-            advice += (calculation.fiveMinuteBlocks * 5) + " minutes</strong> reviewing this change.</div>";
+            if (calculation.hours > 0 && calculation.minutes > 0) {
+                advice += "and ";
+            }
+            if (calculation.minutes > 0) {
+                advice += "<strong>" + calculation.minutes + " minutes</strong> ";
+            }
+            advice += "reviewing this change.</div>";
             if (calculation.sessions > 1) {
-                advice += "<div>This should be split up in <strong>" + calculation.sessions + " sessions</strong>.</div>";
+                advice += "<div>This should be split up in <strong>" + calculation.sessions +
+                        " to " + (calculation.sessions + 1) + " sessions</strong>.</div>";
             }
         } catch (NullPointerException e) {
             advice = "<div>No advice exists for this change.</div>";

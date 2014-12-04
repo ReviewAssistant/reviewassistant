@@ -8,7 +8,7 @@ Gerrit.install(function(self) {
             url,
             function (r) {
                 console.log("Got advice: " + r);
-                change_plugins.innerHTML = "<div id=\"reviewAssistant\">"+ r + "</div>";
+                change_plugins.innerHTML = r;
             });
     }
     self.on('showchange', print);

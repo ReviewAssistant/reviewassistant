@@ -8,3 +8,7 @@
 
 # Maven output
 /target
+
+# Buck stuff
+bucklets
+.buckversion
