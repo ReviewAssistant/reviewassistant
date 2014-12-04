@@ -2,6 +2,7 @@
 .idea/workspace.xml
 .idea/tasks.xml
 .idea/dictionaries
+.idea/misc.xml
 
 # Don't add temporary files
 *~
