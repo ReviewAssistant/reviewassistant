@@ -12,10 +12,15 @@ import com.google.gerrit.server.patch.PatchListEntry;
 import com.google.gerrit.server.patch.PatchListNotAvailableException;
 import com.google.inject.Inject;
 import com.google.inject.assistedinject.Assisted;
+import org.eclipse.jgit.api.BlameCommand;
+import org.eclipse.jgit.api.errors.GitAPIException;
+import org.eclipse.jgit.blame.BlameResult;
+import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.revwalk.RevCommit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -25,25 +30,27 @@ import java.util.Map;
  */
 public class ReviewAssistant implements Runnable {
 
-    private PatchListCache patchListCache;
-    private Change change;
-    private PatchSet ps;
-    private RevCommit commit;
+    private final Repository repo;
+    private final PatchListCache patchListCache;
+    private final Change change;
+    private final PatchSet ps;
+    private final RevCommit commit;
 
     private static final Logger log = LoggerFactory.getLogger(ReviewAssistant.class);
 
     public interface Factory {
-        ReviewAssistant create(RevCommit commit, Change change, PatchSet ps);
+        ReviewAssistant create(RevCommit commit, Change change, PatchSet ps, Repository repo);
     }
 
     @Inject
     public ReviewAssistant(final PatchListCache patchListCache,
                            @Assisted final RevCommit commit, @Assisted final Change change,
-                           @Assisted final PatchSet ps) {
+                           @Assisted final PatchSet ps, @Assisted final Repository repo) {
         this.commit = commit;
         this.change = change;
         this.ps = ps;
         this.patchListCache = patchListCache;
+        this.repo = repo;
     }
 
     /**
@@ -121,6 +128,31 @@ public class ReviewAssistant implements Runnable {
     private static int calculateFiveMinuteBlocks(int minutes) {
         int fiveMinuteBlocks = (int) Math.ceil((minutes % 60) / 5.0);
         return fiveMinuteBlocks;
+    }
+
+    /**
+     * Calculates blame data for a given file and commit.
+     * @param commit the commit to base the blame command on
+     * @param file the file for which to calculate blame data
+     * @return BlameResult
+     */
+    private BlameResult calculateBlame(RevCommit commit, PatchListEntry file) {
+        BlameCommand blameCommand = new BlameCommand(repo);
+        blameCommand.setStartCommit(commit);
+        blameCommand.setFilePath(file.getNewName());
+
+        try {
+            BlameResult blameResult = blameCommand.call();
+            blameResult.computeAll();
+            return blameResult;
+        } catch (GitAPIException e) {
+            log.error("Could not call blame command for commit {}", commit.getName(), e);
+            e.printStackTrace();
+        } catch (IOException e) {
+            log.error("Could not compute blame result for commit {]", commit.getName(), e);
+            e.printStackTrace();
+        }
+        return null;
     }
 
     @Override
