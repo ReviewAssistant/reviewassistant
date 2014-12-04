@@ -92,8 +92,6 @@ public class ReviewAssistant implements Runnable {
      */
     private static int calculateReviewTime(PatchSetCreatedEvent event) {
         int lines = event.patchSet.sizeInsertions + Math.abs(event.patchSet.sizeDeletions);
-        log.info("Insertions: " + event.patchSet.sizeInsertions);
-        log.info("Deletions: " + event.patchSet.sizeDeletions);
         int minutes = (int) Math.ceil(lines / 5);
         if(minutes < 5) {
             minutes = 5;
@@ -187,15 +185,16 @@ public class ReviewAssistant implements Runnable {
         }
 
         for (PatchListEntry entry : patchList.getPatches()) {
-            log.info("Entries");
             /*
              * Only git blame at the moment. If other methods are used in the future,
              * other change types might be required.
              */
             if (entry.getChangeType() == ChangeType.MODIFIED ||
                     entry.getChangeType() == ChangeType.DELETED) {
-                BlameResult blameResult = calculateBlame(commit, entry);
+                log.info("Something changed.");
+                BlameResult blameResult = calculateBlame(commit.getParent(0), entry);
                 if (blameResult != null) {
+                    log.info("Blame not null.");
                     List<Edit> edits = entry.getEdits();
                     reviewers.putAll(getAllReviewers(edits, blameResult));
                     for (Map.Entry<Account, Integer> reviewerEntry : reviewers.entrySet()) {
