@@ -72,7 +72,7 @@ class ChangeEventListener implements ChangeListener {
         }
 
         final ReviewDb db;
-        final RevWalk rw = new RevWalk(repo);
+        final RevWalk walk = new RevWalk(repo);
 
 
         try {
@@ -92,7 +92,7 @@ class ChangeEventListener implements ChangeListener {
                     return;
                 }
 
-                RevCommit commit = rw.parseCommit(ObjectId.fromString(event.patchSet.revision));
+                RevCommit commit = walk.parseCommit(ObjectId.fromString(event.patchSet.revision));
 
                 final Runnable task = reviewAssistantFactory.create(commit, change, ps, repo);
                 workQueue.getDefaultQueue().submit(new Runnable() {
@@ -115,7 +115,7 @@ class ChangeEventListener implements ChangeListener {
         } catch (OrmException e) {
             log.error(e.getMessage(), e);
         } finally {
-            rw.release();
+            walk.release();
             repo.close();
         }
     }

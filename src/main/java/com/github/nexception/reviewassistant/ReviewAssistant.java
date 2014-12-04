@@ -122,10 +122,8 @@ public class ReviewAssistant implements Runnable {
             return blameResult;
         } catch (GitAPIException e) {
             log.error("Could not call blame command for commit {}", commit.getName(), e);
-            e.printStackTrace();
         } catch (IOException e) {
-            log.error("Could not compute blame result for commit {]", commit.getName(), e);
-            e.printStackTrace();
+            log.error("Could not compute blame result for commit {}", commit.getName(), e);
         }
         return null;
     }
