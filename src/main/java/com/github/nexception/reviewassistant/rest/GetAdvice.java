@@ -28,20 +28,20 @@ public class GetAdvice implements RestReadView<RevisionResource> {
     public Object apply(RevisionResource resource) throws AuthException, BadRequestException, ResourceConflictException {
         Calculation calculation = storage.fetchCalculation(resource.getPatchSet().getRevision().get());
         String advice = "<div id=\"reviewAssistant\" style=\"padding-top: 10px;\" ><strong>ReviewAssistant</strong>";
-        advice += "<div>Reviewers should spend ";
+        advice += "<div>Reviewers should spend <strong>";
         try {
             if (calculation.hours == 1) {
-                advice += "<strong>" + calculation.hours + " hour</strong> ";
+                advice += calculation.hours + " hour";
             } else if (calculation.hours > 1) {
-                advice += "<strong>" + calculation.hours + " hours</strong> ";
+                advice += calculation.hours + " hours";
             }
             if (calculation.hours > 0 && calculation.minutes > 0) {
-                advice += "and ";
+                advice += " and ";
             }
             if (calculation.minutes > 0) {
-                advice += "<strong>" + calculation.minutes + " minutes</strong> ";
+                advice += calculation.minutes + " minutes";
             }
-            advice += "reviewing this change.</div>";
+            advice += "</strong> reviewing this change.</div>";
             if (calculation.sessions > 1) {
                 advice += "<div>This should be split up in <strong>" + calculation.sessions +
                         " to " + (calculation.sessions + 1) + " sessions</strong>.</div>";
