@@ -5,7 +5,9 @@ import com.google.gerrit.reviewdb.client.Account;
 import com.google.gerrit.reviewdb.client.Change;
 import com.google.gerrit.reviewdb.client.Patch.ChangeType;
 import com.google.gerrit.reviewdb.client.PatchSet;
+import com.google.gerrit.server.account.AccountByEmailCache;
 import com.google.gerrit.server.account.AccountCache;
+import com.google.gerrit.server.change.Reviewers;
 import com.google.gerrit.server.events.PatchSetCreatedEvent;
 import com.google.gerrit.server.patch.PatchList;
 import com.google.gerrit.server.patch.PatchListCache;
@@ -26,6 +28,7 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * A class for calculating recommended review time and
@@ -33,12 +36,13 @@ import java.util.Map;
  */
 public class ReviewAssistant implements Runnable {
 
-    private final Repository repo;
-    private final PatchListCache patchListCache;
-    private final Change change;
-    private final PatchSet ps;
-    private final RevCommit commit;
+    private final AccountByEmailCache emailCache;
     private final AccountCache accountCache;
+    private final Change change;
+    private final PatchListCache patchListCache;
+    private final PatchSet ps;
+    private final Repository repo;
+    private final RevCommit commit;
 
     private static final Logger log = LoggerFactory.getLogger(ReviewAssistant.class);
 
@@ -48,6 +52,7 @@ public class ReviewAssistant implements Runnable {
 
     @Inject
     public ReviewAssistant(final PatchListCache patchListCache, final AccountCache accountCache,
+                           final AccountByEmailCache emailCache,
                            @Assisted final RevCommit commit, @Assisted final Change change,
                            @Assisted final PatchSet ps, @Assisted final Repository repo) {
         this.commit = commit;
@@ -56,6 +61,7 @@ public class ReviewAssistant implements Runnable {
         this.patchListCache = patchListCache;
         this.repo = repo;
         this.accountCache = accountCache;
+        this.emailCache = emailCache;
     }
 
     /**
@@ -145,10 +151,23 @@ public class ReviewAssistant implements Runnable {
         for (Edit edit : edits) {
             for (int i = edit.getBeginA(); i < edit.getEndA(); i++) {
                 RevCommit commit = blameResult.getSourceCommit(i);
-                //TODO: Get accouts for email
-                //TODO: For each account, check if active and not owner -> increment blame score
+                Set<Account.Id> idSet = emailCache.get(commit.getAuthorIdent().getEmailAddress());
+                for (Account.Id id : idSet) {
+                    Account account = accountCache.get(id).getAccount();
+                    // Check if account is active and not owner of change
+                    if (account.isActive() && !change.getOwner().equals(account.getId())) {
+                        Integer count = reviewers.get(account);
+                        if (count == null) {
+                            count = 1;
+                        } else {
+                            count = count.intValue() + 1;
+                        }
+                        reviewers.put(account, count);
+                    }
+                }
             }
         }
+        return reviewers;
     }
 
     @Override
@@ -178,9 +197,12 @@ public class ReviewAssistant implements Runnable {
                     entry.getChangeType() == ChangeType.DELETED) {
                 BlameResult blameResult = calculateBlame(commit, entry);
                 if (blameResult != null) {
-                    //TODO: Magic
                     List<Edit> edits = entry.getEdits();
                     reviewers.putAll(getAllReviewers(edits, blameResult));
+                    for (Map.Entry<Account, Integer> reviewerEntry : reviewers.entrySet()) {
+                        log.info("Account " + reviewerEntry.getKey().getPreferredEmail() +
+                                " has blame score " + reviewerEntry.getValue());
+                    }
                 } else {
                     log.error("calculateBlame returned null for commit {}", commit);
                 }
@@ -188,4 +210,3 @@ public class ReviewAssistant implements Runnable {
         }
     }
 }
-
