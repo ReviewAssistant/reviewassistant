@@ -94,7 +94,7 @@ class ChangeEventListener implements ChangeListener {
 
                 RevCommit commit = rw.parseCommit(ObjectId.fromString(event.patchSet.revision));
 
-                final Runnable task = reviewAssistantFactory.create(commit, change, ps);
+                final Runnable task = reviewAssistantFactory.create(commit, change, ps, repo);
                 workQueue.getDefaultQueue().submit(new Runnable() {
                     @Override
                     public void run() {

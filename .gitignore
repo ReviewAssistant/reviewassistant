@@ -8,3 +8,4 @@
 
 # Maven output
 /target
+.idea/misc.xml
