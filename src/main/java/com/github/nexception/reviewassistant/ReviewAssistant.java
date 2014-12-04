@@ -5,6 +5,7 @@ import com.google.gerrit.reviewdb.client.Account;
 import com.google.gerrit.reviewdb.client.Change;
 import com.google.gerrit.reviewdb.client.Patch.ChangeType;
 import com.google.gerrit.reviewdb.client.PatchSet;
+import com.google.gerrit.server.account.AccountCache;
 import com.google.gerrit.server.events.PatchSetCreatedEvent;
 import com.google.gerrit.server.patch.PatchList;
 import com.google.gerrit.server.patch.PatchListCache;
@@ -15,6 +16,7 @@ import com.google.inject.assistedinject.Assisted;
 import org.eclipse.jgit.api.BlameCommand;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.blame.BlameResult;
+import org.eclipse.jgit.diff.Edit;
 import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.revwalk.RevCommit;
 import org.slf4j.Logger;
@@ -22,6 +24,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -35,6 +38,7 @@ public class ReviewAssistant implements Runnable {
     private final Change change;
     private final PatchSet ps;
     private final RevCommit commit;
+    private final AccountCache accountCache;
 
     private static final Logger log = LoggerFactory.getLogger(ReviewAssistant.class);
 
@@ -43,7 +47,7 @@ public class ReviewAssistant implements Runnable {
     }
 
     @Inject
-    public ReviewAssistant(final PatchListCache patchListCache,
+    public ReviewAssistant(final PatchListCache patchListCache, final AccountCache accountCache,
                            @Assisted final RevCommit commit, @Assisted final Change change,
                            @Assisted final PatchSet ps, @Assisted final Repository repo) {
         this.commit = commit;
@@ -51,6 +55,7 @@ public class ReviewAssistant implements Runnable {
         this.ps = ps;
         this.patchListCache = patchListCache;
         this.repo = repo;
+        this.accountCache = accountCache;
     }
 
     /**
@@ -128,6 +133,24 @@ public class ReviewAssistant implements Runnable {
         return null;
     }
 
+    /**
+     * Calculates all reviewers based on a blameresult. The result is a map of accounts and integers
+     * where the integer represents the number of occurrences of the account in the commit history.
+     * @param edits list of edited rows for a file
+     * @param blameResult result from git blame for a specific file
+     * @return a map of accounts and an integer value
+     */
+    private Map<Account, Integer> getAllReviewers(List<Edit> edits, BlameResult blameResult) {
+        Map<Account, Integer> reviewers = new HashMap<>();
+        for (Edit edit : edits) {
+            for (int i = edit.getBeginA(); i < edit.getEndA(); i++) {
+                RevCommit commit = blameResult.getSourceCommit(i);
+                //TODO: Get accouts for email
+                //TODO: For each account, check if active and not owner -> increment blame score
+            }
+        }
+    }
+
     @Override
     public void run() {
         PatchList patchList;
@@ -147,7 +170,7 @@ public class ReviewAssistant implements Runnable {
 
         for (PatchListEntry entry : patchList.getPatches()) {
             log.info("Entries");
-            /**
+            /*
              * Only git blame at the moment. If other methods are used in the future,
              * other change types might be required.
              */
@@ -156,8 +179,10 @@ public class ReviewAssistant implements Runnable {
                 BlameResult blameResult = calculateBlame(commit, entry);
                 if (blameResult != null) {
                     //TODO: Magic
-                    log.info("Found modified/deleted file:");
-                    log.info(entry.getNewName());
+                    List<Edit> edits = entry.getEdits();
+                    reviewers.putAll(getAllReviewers(edits, blameResult));
+                } else {
+                    log.error("calculateBlame returned null for commit {}", commit);
                 }
             }
         }
