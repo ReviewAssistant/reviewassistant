@@ -153,9 +153,12 @@ public class ReviewAssistant implements Runnable {
              */
             if (entry.getChangeType() == ChangeType.MODIFIED ||
                     entry.getChangeType() == ChangeType.DELETED) {
-                //TODO: Magic
-                log.info("Found modified/deleted file:");
-                log.info(entry.getNewName());
+                BlameResult blameResult = calculateBlame(commit, entry);
+                if (blameResult != null) {
+                    //TODO: Magic
+                    log.info("Found modified/deleted file:");
+                    log.info(entry.getNewName());
+                }
             }
         }
     }
