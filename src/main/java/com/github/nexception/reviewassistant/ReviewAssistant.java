@@ -9,6 +9,7 @@ import com.google.gerrit.reviewdb.client.Account;
 import com.google.gerrit.reviewdb.client.Change;
 import com.google.gerrit.reviewdb.client.Patch.ChangeType;
 import com.google.gerrit.reviewdb.client.PatchSet;
+import com.google.gerrit.reviewdb.client.Project;
 import com.google.gerrit.server.account.AccountByEmailCache;
 import com.google.gerrit.server.account.AccountCache;
 import com.google.gerrit.server.config.PluginConfigFactory;
@@ -17,6 +18,7 @@ import com.google.gerrit.server.patch.PatchList;
 import com.google.gerrit.server.patch.PatchListCache;
 import com.google.gerrit.server.patch.PatchListEntry;
 import com.google.gerrit.server.patch.PatchListNotAvailableException;
+import com.google.gerrit.server.project.NoSuchProjectException;
 import com.google.inject.Inject;
 import com.google.inject.assistedinject.Assisted;
 import org.eclipse.jgit.api.BlameCommand;
@@ -54,9 +56,10 @@ public class ReviewAssistant implements Runnable {
     private final PluginConfigFactory cfg;
 
     private static final Logger log = LoggerFactory.getLogger(ReviewAssistant.class);
+    private final Project.NameKey projectName;
 
     public interface Factory {
-        ReviewAssistant create(RevCommit commit, Change change, PatchSet ps, Repository repo);
+        ReviewAssistant create(RevCommit commit, Change change, PatchSet ps, Repository repo, Project.NameKey projectName);
     }
 
     @Inject
@@ -64,7 +67,8 @@ public class ReviewAssistant implements Runnable {
                            final GerritApi api,
                            final AccountByEmailCache emailCache, final PluginConfigFactory cfg,
                            @Assisted final RevCommit commit, @Assisted final Change change,
-                           @Assisted final PatchSet ps, @Assisted final Repository repo) {
+                           @Assisted final PatchSet ps, @Assisted final Repository repo,
+                           @Assisted final Project.NameKey projectName) {
         this.commit = commit;
         this.change = change;
         this.ps = ps;
@@ -74,6 +78,7 @@ public class ReviewAssistant implements Runnable {
         this.emailCache = emailCache;
         this.cfg = cfg;
         this.api = api;
+        this.projectName = projectName;
     }
 
     /**
@@ -158,7 +163,6 @@ public class ReviewAssistant implements Runnable {
      */
     private List<Entry<Account, Integer>> getReviewers(List<Edit> edits, BlameResult blameResult) {
         Map<Account, Integer> blameData = new HashMap<>();
-        int maxReviewers = cfg.getGlobalPluginConfig("reviewassistant").getInt("reviewers", "reviewers", 3);
         for (Edit edit : edits) {
             for (int i = edit.getBeginA(); i < edit.getEndA(); i++) {
                 RevCommit commit = blameResult.getSourceCommit(i);
@@ -178,16 +182,22 @@ public class ReviewAssistant implements Runnable {
                 }
             }
         }
+        try {
+            int maxReviewers = cfg.getProjectPluginConfigWithInheritance(projectName, "reviewassistant").getInt("reviewers", "reviewers", 3);
+            log.info("maxReviewers set to " + maxReviewers);
+            List<Entry<Account, Integer>> topReviewers = Ordering.from(new Comparator<Entry<Account, Integer>>() {
+                @Override
+                public int compare(Entry<Account, Integer> itemOne, Entry<Account, Integer> itemTwo) {
+                    return itemOne.getValue() - itemTwo.getValue();
+                }
+            }).greatestOf(blameData.entrySet(), maxReviewers);
 
-        List<Entry<Account, Integer>> topReviewers = Ordering.from(new Comparator<Entry<Account, Integer>>() {
-            @Override
-            public int compare(Entry<Account, Integer> itemOne, Entry<Account, Integer> itemTwo) {
-                return itemOne.getValue() - itemTwo.getValue();
-            }
-        }).greatestOf(blameData.entrySet(), maxReviewers);
-
-        log.info("getReviewers found " + topReviewers.size() + " reviewers");
-        return topReviewers;
+            log.info("getReviewers found " + topReviewers.size() + " reviewers");
+            return topReviewers;
+        } catch (NoSuchProjectException e) {
+            log.error("Could not find project {}", projectName.get());
+            return null;
+        }
     }
 
     private void addReviewers(Change change, List<Entry<Account, Integer>> list) {
