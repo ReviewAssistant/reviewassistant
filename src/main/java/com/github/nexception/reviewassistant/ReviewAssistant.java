@@ -199,11 +199,8 @@ public class ReviewAssistant implements Runnable {
             }
 
         } catch (RestApiException e) {
-            log.error("Could not add reviewers, API-error");
-        } catch (Exception e) {
-            log.error("Could not add reviewers");
+            log.error("Could not add reviewers", e);
         }
-
     }
 
     @Override
