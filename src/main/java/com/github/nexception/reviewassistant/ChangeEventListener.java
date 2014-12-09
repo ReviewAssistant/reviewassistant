@@ -7,7 +7,6 @@ import com.google.gerrit.reviewdb.client.Project;
 import com.google.gerrit.reviewdb.server.ReviewDb;
 import com.google.gerrit.server.CurrentUser;
 import com.google.gerrit.server.IdentifiedUser;
-import com.google.gerrit.server.account.ChangeUserName;
 import com.google.gerrit.server.events.ChangeEvent;
 import com.google.gerrit.server.events.PatchSetCreatedEvent;
 import com.google.gerrit.server.git.GitRepositoryManager;
@@ -57,7 +56,6 @@ class ChangeEventListener implements ChangeListener {
         this.identifiedUserFactory = identifiedUserFactory;
         this.tl = tl;
     }
-
 
     @Override
     public void onChangeEvent(ChangeEvent changeEvent) {
@@ -136,6 +134,7 @@ class ChangeEventListener implements ChangeListener {
                                 };
                             }
                         });
+
                         try {
                             task.run();
                         } finally {
