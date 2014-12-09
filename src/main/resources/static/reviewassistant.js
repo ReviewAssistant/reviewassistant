@@ -1,6 +1,6 @@
 Gerrit.install(function(self) {
     function print (c, r) {
-        var url = "changes/" + c._number + "/revisions/" + r._number + "/ReviewAssistant~advice";
+        var url = "changes/" + c._number + "/revisions/" + r._number + "/reviewassistant~advice";
         console.log("Url is: " + url);
         var change_plugins = document.getElementById('change_plugins');
         console.log("Asking for advice...");
