@@ -180,6 +180,7 @@ public class ReviewAssistant implements Runnable {
             }
         }).greatestOf(blameData.entrySet(), maxReviewers);
 
+        log.info("getReviewers found " + topReviewers.size() + " reviewers");
         return topReviewers;
     }
 
@@ -206,14 +207,12 @@ public class ReviewAssistant implements Runnable {
              */
             if (entry.getChangeType() == ChangeType.MODIFIED ||
                     entry.getChangeType() == ChangeType.DELETED) {
-                log.info("Something changed.");
                 BlameResult blameResult = calculateBlame(commit.getParent(0), entry);
                 if (blameResult != null) {
-                    log.info("Blame not null.");
                     List<Edit> edits = entry.getEdits();
                     reviewers.addAll(getReviewers(edits, blameResult));
                     for (int i = 0; i < reviewers.size(); i++) {
-                        log.info(i + ": User: " + reviewers.get(i).getKey().getPreferredEmail() +
+                        log.info("Candidate " + (i + 1) + ": " + reviewers.get(i).getKey().getPreferredEmail() +
                                 ", blame score: " + reviewers.get(i).getValue());
                     }
                 } else {
