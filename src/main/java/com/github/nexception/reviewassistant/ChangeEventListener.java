@@ -94,9 +94,7 @@ class ChangeEventListener implements ChangeListener {
 
                 RevCommit commit = walk.parseCommit(ObjectId.fromString(event.patchSet.revision));
 
-                //TODO: Make the create method take only project name, change and patchset.
-                //TODO: (The rest should be moved into ReviewAssistant)
-                final Runnable task = reviewAssistantFactory.create(commit, change, ps, repo, projectName);
+                final Runnable task = reviewAssistantFactory.create(commit, change, ps, repo);
                 workQueue.getDefaultQueue().submit(new Runnable() {
                     @Override
                     public void run() {
