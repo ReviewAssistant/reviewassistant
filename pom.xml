@@ -6,7 +6,7 @@
     <groupId>com.github.nexception.reviewassistant</groupId>
     <artifactId>reviewassistant</artifactId>
     <packaging>jar</packaging>
-    <version>0.2-SNAPSHOT</version>
+    <version>0.2</version>
     <name>reviewassistant</name>
 
     <properties>
@@ -23,7 +23,7 @@
                 <configuration>
                     <archive>
                         <manifestEntries>
-                            <Gerrit-PluginName>ReviewAssistant</Gerrit-PluginName>
+                            <Gerrit-PluginName>reviewassistant</Gerrit-PluginName>
                             <Gerrit-Module>com.github.nexception.reviewassistant.Module</Gerrit-Module>
                             <Gerrit-HttpModule>com.github.nexception.reviewassistant.HttpModule</Gerrit-HttpModule>
 
