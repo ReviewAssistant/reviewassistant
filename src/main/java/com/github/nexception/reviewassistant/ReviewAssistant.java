@@ -3,7 +3,6 @@ package com.github.nexception.reviewassistant;
 import com.github.nexception.reviewassistant.models.Calculation;
 import com.google.common.collect.Ordering;
 import com.google.gerrit.extensions.api.changes.AddReviewerInput;
-import com.google.gerrit.extensions.restapi.ResourceNotFoundException;
 import com.google.gerrit.reviewdb.client.Account;
 import com.google.gerrit.reviewdb.client.Change;
 import com.google.gerrit.reviewdb.client.Patch.ChangeType;
@@ -193,8 +192,8 @@ public class ReviewAssistant implements Runnable {
 
     private void addReviewers(Change change, List<Entry<Account, Integer>> list) {
         try {
-            ChangeResource changeResource = changes.parse(change.getId());
-            AddReviewerInput input = new AddReviewerInput();
+           // ChangeResource changeResource = changes.parse(change.getId());
+           // AddReviewerInput input = new AddReviewerInput();
             for (Entry<Account, Integer> entry : list) {
                 log.info(entry.getKey() + " was added to this change");
             }
