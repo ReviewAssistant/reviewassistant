@@ -7,7 +7,6 @@ import com.google.gerrit.reviewdb.client.Project;
 import com.google.gerrit.reviewdb.server.ReviewDb;
 import com.google.gerrit.server.CurrentUser;
 import com.google.gerrit.server.IdentifiedUser;
-import com.google.gerrit.server.account.ChangeUserName;
 import com.google.gerrit.server.events.ChangeEvent;
 import com.google.gerrit.server.events.PatchSetCreatedEvent;
 import com.google.gerrit.server.git.GitRepositoryManager;
@@ -28,9 +27,7 @@ import org.eclipse.jgit.revwalk.RevCommit;
 import org.eclipse.jgit.revwalk.RevWalk;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import java.io.IOException;
-
 
 /**
  * The change event listener listens to new commits and passes them on to the algorithm.
@@ -48,7 +45,11 @@ class ChangeEventListener implements ChangeListener {
     private ReviewDb db;
 
     @Inject
-    ChangeEventListener(final ReviewAssistant.Factory reviewAssistantFactory, final Storage storage, final WorkQueue workQueue, final GitRepositoryManager repoManager, final SchemaFactory<ReviewDb> schemaFactory, final IdentifiedUser.GenericFactory identifiedUserFactory, final ThreadLocalRequestContext tl) {
+    ChangeEventListener(final ReviewAssistant.Factory reviewAssistantFactory, final Storage storage,
+                        final WorkQueue workQueue, final GitRepositoryManager repoManager,
+                        final SchemaFactory<ReviewDb> schemaFactory,
+                        final IdentifiedUser.GenericFactory identifiedUserFactory,
+                        final ThreadLocalRequestContext tl) {
         this.storage = storage;
         this.workQueue = workQueue;
         this.reviewAssistantFactory = reviewAssistantFactory;
@@ -57,7 +58,6 @@ class ChangeEventListener implements ChangeListener {
         this.identifiedUserFactory = identifiedUserFactory;
         this.tl = tl;
     }
-
 
     @Override
     public void onChangeEvent(ChangeEvent changeEvent) {
@@ -85,7 +85,6 @@ class ChangeEventListener implements ChangeListener {
 
         final ReviewDb reviewDb;
         final RevWalk walk = new RevWalk(repo);
-
 
         try {
             reviewDb = schemaFactory.open();
@@ -147,7 +146,6 @@ class ChangeEventListener implements ChangeListener {
                         }
                     }
                 });
-
             } catch (IncorrectObjectTypeException e) {
                 log.error(e.getMessage(), e);
             } catch (MissingObjectException e) {
@@ -157,7 +155,6 @@ class ChangeEventListener implements ChangeListener {
             } finally {
                 reviewDb.close();
             }
-
         } catch (OrmException e) {
             log.error(e.getMessage(), e);
         } finally {

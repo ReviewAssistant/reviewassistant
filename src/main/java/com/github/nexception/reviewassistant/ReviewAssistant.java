@@ -2,10 +2,12 @@ package com.github.nexception.reviewassistant;
 
 import com.github.nexception.reviewassistant.models.Calculation;
 import com.google.common.collect.Ordering;
-import com.google.gerrit.extensions.api.GerritApi;
+import com.google.gerrit.common.errors.EmailException;
 import com.google.gerrit.extensions.api.changes.AddReviewerInput;
-import com.google.gerrit.extensions.api.changes.ChangeApi;
-import com.google.gerrit.extensions.restapi.RestApiException;
+import com.google.gerrit.extensions.restapi.AuthException;
+import com.google.gerrit.extensions.restapi.BadRequestException;
+import com.google.gerrit.extensions.restapi.ResourceNotFoundException;
+import com.google.gerrit.extensions.restapi.UnprocessableEntityException;
 import com.google.gerrit.reviewdb.client.Account;
 import com.google.gerrit.reviewdb.client.Change;
 import com.google.gerrit.reviewdb.client.Patch.ChangeType;
@@ -23,6 +25,7 @@ import com.google.gerrit.server.patch.PatchListCache;
 import com.google.gerrit.server.patch.PatchListEntry;
 import com.google.gerrit.server.patch.PatchListNotAvailableException;
 import com.google.gerrit.server.project.NoSuchProjectException;
+import com.google.gwtorm.server.OrmException;
 import com.google.inject.Inject;
 import com.google.inject.Provider;
 import com.google.inject.assistedinject.Assisted;
@@ -34,7 +37,6 @@ import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.revwalk.RevCommit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import java.io.IOException;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -57,11 +59,9 @@ public class ReviewAssistant implements Runnable {
     private final PatchSet ps;
     private final Repository repo;
     private final RevCommit commit;
-    private final GerritApi api;
     private final PluginConfigFactory cfg;
     private final Provider<PostReviewers> reviewersProvider;
     private final ChangesCollection changes;
-
     private static final Logger log = LoggerFactory.getLogger(ReviewAssistant.class);
     private final Project.NameKey projectName;
 
@@ -71,7 +71,7 @@ public class ReviewAssistant implements Runnable {
 
     @Inject
     public ReviewAssistant(final PatchListCache patchListCache, final AccountCache accountCache,
-                           final GerritApi api,final ChangesCollection changes,
+                           final ChangesCollection changes,
                            final Provider<PostReviewers> reviewersProvider,
                            final AccountByEmailCache emailCache, final PluginConfigFactory cfg,
                            @Assisted final RevCommit commit, @Assisted final Change change,
@@ -85,7 +85,6 @@ public class ReviewAssistant implements Runnable {
         this.accountCache = accountCache;
         this.emailCache = emailCache;
         this.cfg = cfg;
-        this.api = api;
         this.projectName = projectName;
         this.changes = changes;
         this.reviewersProvider = reviewersProvider;
@@ -210,24 +209,35 @@ public class ReviewAssistant implements Runnable {
         }
     }
 
+    /**
+     * Adds reviewers to the change.
+     * @param change the change for which reviewers should be added
+     * @param list list of reviewers
+     */
     private void addReviewers(Change change, List<Entry<Account, Integer>> list) {
         try {
-            log.info("addReviewers started");
-            //ChangeApi cApi = api.changes().id(change.getChangeId());
             ChangeResource changeResource = changes.parse(change.getId());
             PostReviewers post = reviewersProvider.get();
             for (Entry<Account, Integer> entry : list) {
-               // cApi.addReviewer(entry.getKey().getId().toString());
                 AddReviewerInput input = new AddReviewerInput();
                 input.reviewer = entry.getKey().getId().toString();
                 post.apply(changeResource, input);
-                log.info(entry.getKey().getId().toString() + " was added to this change");
+                log.info("{} was added to change {}", entry.getKey().getPreferredEmail(), change.getChangeId());
             }
-
-        } catch (RestApiException e) {
-            log.error("Could not add reviewers", e);
-        } catch (Exception e) {
-            log.error("Error", e);
+        } catch (ResourceNotFoundException e) {
+            log.error(e.getMessage(), e);
+        } catch (BadRequestException e) {
+            log.error(e.getMessage(), e);
+        } catch (IOException e) {
+            log.error(e.getMessage(), e);
+        } catch (UnprocessableEntityException e) {
+            log.error(e.getMessage(), e);
+        } catch (OrmException e) {
+            log.error(e.getMessage(), e);
+        } catch (AuthException e) {
+            log.error(e.getMessage(), e);
+        } catch (EmailException e) {
+            log.error(e.getMessage(), e);
         }
     }
 
