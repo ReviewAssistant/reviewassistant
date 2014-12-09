@@ -192,7 +192,8 @@ public class ReviewAssistant implements Runnable {
             }
         }
         try {
-            int maxReviewers = cfg.getProjectPluginConfigWithInheritance(projectName, "reviewassistant").getInt("reviewers", "reviewers", 3);
+            //TODO: Move this to main module
+            int maxReviewers = cfg.getProjectPluginConfigWithInheritance(projectName, "reviewassistant").getInt("reviewers", "maxReviewers", 3);
             log.info("maxReviewers set to " + maxReviewers);
             List<Entry<Account, Integer>> topReviewers = Ordering.from(new Comparator<Entry<Account, Integer>>() {
                 @Override

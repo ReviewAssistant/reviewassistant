@@ -9,11 +9,11 @@ Other projects can then override the configuration in their own
 `@PLUGIN@.config` file.
 
 ```
-  [plugin "reviewassistant"]
-    maxReviewers = 2
+  [reviewers]
+    maxReviewers = 3
 ```
 
 reviewers.maxReviewers
 :	The maximum number of reviewers that should automatically be added to a change.
 
-	By default 2.
+	By default 3.
