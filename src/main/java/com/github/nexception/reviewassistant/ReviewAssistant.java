@@ -3,6 +3,7 @@ package com.github.nexception.reviewassistant;
 import com.github.nexception.reviewassistant.models.Calculation;
 import com.google.common.collect.Ordering;
 import com.google.gerrit.extensions.api.GerritApi;
+import com.google.gerrit.extensions.api.changes.AddReviewerInput;
 import com.google.gerrit.extensions.api.changes.ChangeApi;
 import com.google.gerrit.extensions.restapi.RestApiException;
 import com.google.gerrit.reviewdb.client.Account;
@@ -12,6 +13,9 @@ import com.google.gerrit.reviewdb.client.PatchSet;
 import com.google.gerrit.reviewdb.client.Project;
 import com.google.gerrit.server.account.AccountByEmailCache;
 import com.google.gerrit.server.account.AccountCache;
+import com.google.gerrit.server.change.ChangeResource;
+import com.google.gerrit.server.change.ChangesCollection;
+import com.google.gerrit.server.change.PostReviewers;
 import com.google.gerrit.server.config.PluginConfigFactory;
 import com.google.gerrit.server.events.PatchSetCreatedEvent;
 import com.google.gerrit.server.patch.PatchList;
@@ -20,6 +24,7 @@ import com.google.gerrit.server.patch.PatchListEntry;
 import com.google.gerrit.server.patch.PatchListNotAvailableException;
 import com.google.gerrit.server.project.NoSuchProjectException;
 import com.google.inject.Inject;
+import com.google.inject.Provider;
 import com.google.inject.assistedinject.Assisted;
 import org.eclipse.jgit.api.BlameCommand;
 import org.eclipse.jgit.api.errors.GitAPIException;
@@ -54,6 +59,8 @@ public class ReviewAssistant implements Runnable {
     private final RevCommit commit;
     private final GerritApi api;
     private final PluginConfigFactory cfg;
+    private final Provider<PostReviewers> reviewersProvider;
+    private final ChangesCollection changes;
 
     private static final Logger log = LoggerFactory.getLogger(ReviewAssistant.class);
     private final Project.NameKey projectName;
@@ -64,7 +71,8 @@ public class ReviewAssistant implements Runnable {
 
     @Inject
     public ReviewAssistant(final PatchListCache patchListCache, final AccountCache accountCache,
-                           final GerritApi api,
+                           final GerritApi api,final ChangesCollection changes,
+                           final Provider<PostReviewers> reviewersProvider,
                            final AccountByEmailCache emailCache, final PluginConfigFactory cfg,
                            @Assisted final RevCommit commit, @Assisted final Change change,
                            @Assisted final PatchSet ps, @Assisted final Repository repo,
@@ -79,6 +87,8 @@ public class ReviewAssistant implements Runnable {
         this.cfg = cfg;
         this.api = api;
         this.projectName = projectName;
+        this.changes = changes;
+        this.reviewersProvider = reviewersProvider;
     }
 
     /**
@@ -201,19 +211,24 @@ public class ReviewAssistant implements Runnable {
     }
 
     private void addReviewers(Change change, List<Entry<Account, Integer>> list) {
-      //  try {
+        try {
             log.info("addReviewers started");
             //ChangeApi cApi = api.changes().id(change.getChangeId());
+            ChangeResource changeResource = changes.parse(change.getId());
+            PostReviewers post = reviewersProvider.get();
             for (Entry<Account, Integer> entry : list) {
-                //cApi.addReviewer(entry.getKey().getId().toString());
+               // cApi.addReviewer(entry.getKey().getId().toString());
+                AddReviewerInput input = new AddReviewerInput();
+                input.reviewer = entry.getKey().getId().toString();
+                post.apply(changeResource, input);
                 log.info(entry.getKey().getId().toString() + " was added to this change");
             }
 
-       // } catch (RestApiException e) {
-       //     log.error("Could not add reviewers", e);
-       // } catch (Exception e) {
-       //     log.error("Error", e);
-       // }
+        } catch (RestApiException e) {
+            log.error("Could not add reviewers", e);
+        } catch (Exception e) {
+            log.error("Error", e);
+        }
     }
 
     @Override
