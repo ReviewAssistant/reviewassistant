@@ -192,6 +192,7 @@ public class ReviewAssistant implements Runnable {
 
     private void addReviewers(Change change, List<Entry<Account, Integer>> list) {
         try {
+            log.info("addReviewers started");
             ChangeApi api = this.api.changes().id(change.getChangeId());
             for (Entry<Account, Integer> entry : list) {
                 api.addReviewer(entry.getKey().getId().toString());
@@ -200,6 +201,8 @@ public class ReviewAssistant implements Runnable {
 
         } catch (RestApiException e) {
             log.error("Could not add reviewers", e);
+        } catch (Exception e) {
+            log.error("Error", e);
         }
     }
 
