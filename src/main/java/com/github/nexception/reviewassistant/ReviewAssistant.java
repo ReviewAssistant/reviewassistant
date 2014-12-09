@@ -2,15 +2,14 @@ package com.github.nexception.reviewassistant;
 
 import com.github.nexception.reviewassistant.models.Calculation;
 import com.google.common.collect.Ordering;
-import com.google.gerrit.extensions.api.changes.AddReviewerInput;
+import com.google.gerrit.extensions.api.GerritApi;
+import com.google.gerrit.extensions.api.changes.ChangeApi;
 import com.google.gerrit.reviewdb.client.Account;
 import com.google.gerrit.reviewdb.client.Change;
 import com.google.gerrit.reviewdb.client.Patch.ChangeType;
 import com.google.gerrit.reviewdb.client.PatchSet;
 import com.google.gerrit.server.account.AccountByEmailCache;
 import com.google.gerrit.server.account.AccountCache;
-import com.google.gerrit.server.change.ChangeResource;
-import com.google.gerrit.server.change.ChangesCollection;
 import com.google.gerrit.server.config.PluginConfigFactory;
 import com.google.gerrit.server.events.PatchSetCreatedEvent;
 import com.google.gerrit.server.patch.PatchList;
@@ -50,7 +49,7 @@ public class ReviewAssistant implements Runnable {
     private final PatchSet ps;
     private final Repository repo;
     private final RevCommit commit;
-    private final ChangesCollection changes;
+    private final GerritApi api;
     private final PluginConfigFactory cfg;
 
     private static final Logger log = LoggerFactory.getLogger(ReviewAssistant.class);
@@ -61,7 +60,7 @@ public class ReviewAssistant implements Runnable {
 
     @Inject
     public ReviewAssistant(final PatchListCache patchListCache, final AccountCache accountCache,
-                           final ChangesCollection changes,
+                           final GerritApi api,
                            final AccountByEmailCache emailCache, final PluginConfigFactory cfg,
                            @Assisted final RevCommit commit, @Assisted final Change change,
                            @Assisted final PatchSet ps, @Assisted final Repository repo) {
@@ -73,7 +72,7 @@ public class ReviewAssistant implements Runnable {
         this.accountCache = accountCache;
         this.emailCache = emailCache;
         this.cfg = cfg;
-        this.changes = changes;
+        this.api = api;
     }
 
     /**
@@ -192,9 +191,9 @@ public class ReviewAssistant implements Runnable {
 
     private void addReviewers(Change change, List<Entry<Account, Integer>> list) {
         try {
-           // ChangeResource changeResource = changes.parse(change.getId());
-           // AddReviewerInput input = new AddReviewerInput();
+            ChangeApi api = this.api.changes().id(change.getChangeId());
             for (Entry<Account, Integer> entry : list) {
+                api.addReviewer(entry.getKey().getId().toString());
                 log.info(entry.getKey() + " was added to this change");
             }
 
