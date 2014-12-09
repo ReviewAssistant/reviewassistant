@@ -8,6 +8,7 @@ import com.google.gerrit.reviewdb.client.Patch.ChangeType;
 import com.google.gerrit.reviewdb.client.PatchSet;
 import com.google.gerrit.server.account.AccountByEmailCache;
 import com.google.gerrit.server.account.AccountCache;
+import com.google.gerrit.server.config.PluginConfigFactory;
 import com.google.gerrit.server.events.PatchSetCreatedEvent;
 import com.google.gerrit.server.patch.PatchList;
 import com.google.gerrit.server.patch.PatchListCache;
@@ -46,7 +47,7 @@ public class ReviewAssistant implements Runnable {
     private final PatchSet ps;
     private final Repository repo;
     private final RevCommit commit;
-    private final int maxReviewers;
+    private final PluginConfigFactory cfg;
 
     private static final Logger log = LoggerFactory.getLogger(ReviewAssistant.class);
 
@@ -56,7 +57,7 @@ public class ReviewAssistant implements Runnable {
 
     @Inject
     public ReviewAssistant(final PatchListCache patchListCache, final AccountCache accountCache,
-                           final AccountByEmailCache emailCache,
+                           final AccountByEmailCache emailCache, final PluginConfigFactory cfg,
                            @Assisted final RevCommit commit, @Assisted final Change change,
                            @Assisted final PatchSet ps, @Assisted final Repository repo) {
         this.commit = commit;
@@ -66,7 +67,7 @@ public class ReviewAssistant implements Runnable {
         this.repo = repo;
         this.accountCache = accountCache;
         this.emailCache = emailCache;
-        this.maxReviewers = 3; //TODO: Read this value from config
+        this.cfg = cfg;
     }
 
     /**
@@ -151,6 +152,7 @@ public class ReviewAssistant implements Runnable {
      */
     private List<Entry<Account, Integer>> getReviewers(List<Edit> edits, BlameResult blameResult) {
         Map<Account, Integer> blameData = new HashMap<>();
+        int maxReviewers = cfg.getGlobalPluginConfig("reviewassistant").getInt("reviewers", "reviewers", 3);
         for (Edit edit : edits) {
             for (int i = edit.getBeginA(); i < edit.getEndA(); i++) {
                 RevCommit commit = blameResult.getSourceCommit(i);
