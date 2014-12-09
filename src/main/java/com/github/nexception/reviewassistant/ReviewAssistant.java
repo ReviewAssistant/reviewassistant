@@ -1,6 +1,7 @@
 package com.github.nexception.reviewassistant;
 
 import com.github.nexception.reviewassistant.models.Calculation;
+import com.google.common.collect.Ordering;
 import com.google.gerrit.reviewdb.client.Account;
 import com.google.gerrit.reviewdb.client.Change;
 import com.google.gerrit.reviewdb.client.Patch.ChangeType;
@@ -24,9 +25,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.util.Comparator;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 
 /**
@@ -42,6 +46,7 @@ public class ReviewAssistant implements Runnable {
     private final PatchSet ps;
     private final Repository repo;
     private final RevCommit commit;
+    private final int maxReviewers;
 
     private static final Logger log = LoggerFactory.getLogger(ReviewAssistant.class);
 
@@ -61,6 +66,7 @@ public class ReviewAssistant implements Runnable {
         this.repo = repo;
         this.accountCache = accountCache;
         this.emailCache = emailCache;
+        this.maxReviewers = 3; //TODO: Read this value from config
     }
 
     /**
@@ -137,14 +143,14 @@ public class ReviewAssistant implements Runnable {
     }
 
     /**
-     * Calculates all reviewers based on a blameresult. The result is a map of accounts and integers
+     * Calculates all reviewers based on a blame result. The result is a map of accounts and integers
      * where the integer represents the number of occurrences of the account in the commit history.
      * @param edits list of edited rows for a file
      * @param blameResult result from git blame for a specific file
-     * @return a map of accounts and an integer value
+     * @return a list of accounts and integers
      */
-    private Map<Account, Integer> getAllReviewers(List<Edit> edits, BlameResult blameResult) {
-        Map<Account, Integer> reviewers = new HashMap<>();
+    private List<Entry<Account, Integer>> getReviewers(List<Edit> edits, BlameResult blameResult) {
+        Map<Account, Integer> blameData = new HashMap<>();
         for (Edit edit : edits) {
             for (int i = edit.getBeginA(); i < edit.getEndA(); i++) {
                 RevCommit commit = blameResult.getSourceCommit(i);
@@ -153,25 +159,31 @@ public class ReviewAssistant implements Runnable {
                     Account account = accountCache.get(id).getAccount();
                     // Check if account is active and not owner of change
                     if (account.isActive() && !change.getOwner().equals(account.getId())) {
-                        Integer count = reviewers.get(account);
+                        Integer count = blameData.get(account);
                         if (count == null) {
                             count = 1;
                         } else {
                             count = count.intValue() + 1;
                         }
-                        reviewers.put(account, count);
+                        blameData.put(account, count);
                     }
                 }
             }
         }
-        return reviewers;
+
+        List<Entry<Account, Integer>> topReviewers = Ordering.from(new Comparator<Entry<Account, Integer>>() {
+            @Override
+            public int compare(Entry<Account, Integer> itemOne, Entry<Account, Integer> itemTwo) {
+                return itemOne.getValue() - itemTwo.getValue();
+            }
+        }).greatestOf(blameData.entrySet(), maxReviewers);
+
+        return topReviewers;
     }
 
     @Override
     public void run() {
         PatchList patchList;
-        //TODO: Store reviewers in this map.
-        Map<Account, Integer> reviewers = new HashMap<>();
         try {
             patchList = patchListCache.get(change, ps);
         } catch (PatchListNotAvailableException e) {
@@ -184,6 +196,7 @@ public class ReviewAssistant implements Runnable {
             return;
         }
 
+        List<Entry<Account, Integer>> reviewers = new LinkedList<>();
         for (PatchListEntry entry : patchList.getPatches()) {
             /*
              * Only git blame at the moment. If other methods are used in the future,
@@ -196,10 +209,10 @@ public class ReviewAssistant implements Runnable {
                 if (blameResult != null) {
                     log.info("Blame not null.");
                     List<Edit> edits = entry.getEdits();
-                    reviewers.putAll(getAllReviewers(edits, blameResult));
-                    for (Map.Entry<Account, Integer> reviewerEntry : reviewers.entrySet()) {
-                        log.info("Account " + reviewerEntry.getKey().getPreferredEmail() +
-                                " has blame score " + reviewerEntry.getValue());
+                    reviewers.addAll(getReviewers(edits, blameResult));
+                    for (int i = 0; i < reviewers.size(); i++) {
+                        log.info(i + ": User: " + reviewers.get(i).getKey().getPreferredEmail() +
+                                ", blame score: " + reviewers.get(i).getValue());
                     }
                 } else {
                     log.error("calculateBlame returned null for commit {}", commit);
