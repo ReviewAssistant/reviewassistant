@@ -201,19 +201,19 @@ public class ReviewAssistant implements Runnable {
     }
 
     private void addReviewers(Change change, List<Entry<Account, Integer>> list) {
-        try {
+      //  try {
             log.info("addReviewers started");
-            ChangeApi cApi = api.changes().id(change.getChangeId());
+            //ChangeApi cApi = api.changes().id(change.getChangeId());
             for (Entry<Account, Integer> entry : list) {
-                cApi.addReviewer(entry.getKey().getId().toString());
-                log.info(entry.getKey() + " was added to this change");
+                //cApi.addReviewer(entry.getKey().getId().toString());
+                log.info(entry.getKey().getId().toString() + " was added to this change");
             }
 
-        } catch (RestApiException e) {
-            log.error("Could not add reviewers", e);
-        } catch (Exception e) {
-            log.error("Error", e);
-        }
+       // } catch (RestApiException e) {
+       //     log.error("Could not add reviewers", e);
+       // } catch (Exception e) {
+       //     log.error("Error", e);
+       // }
     }
 
     @Override
