@@ -5,20 +5,19 @@ import com.google.gerrit.reviewdb.client.Change;
 import com.google.gerrit.reviewdb.client.PatchSet;
 import com.google.gerrit.reviewdb.client.Project;
 import com.google.gerrit.reviewdb.server.ReviewDb;
-import com.google.gerrit.server.CurrentUser;
-import com.google.gerrit.server.IdentifiedUser;
-import com.google.gerrit.server.account.ChangeUserName;
+//import com.google.gerrit.server.CurrentUser;
+//import com.google.gerrit.server.IdentifiedUser;
 import com.google.gerrit.server.events.ChangeEvent;
 import com.google.gerrit.server.events.PatchSetCreatedEvent;
 import com.google.gerrit.server.git.GitRepositoryManager;
 import com.google.gerrit.server.git.WorkQueue;
-import com.google.gerrit.server.util.RequestContext;
-import com.google.gerrit.server.util.ThreadLocalRequestContext;
+//import com.google.gerrit.server.util.RequestContext;
+//import com.google.gerrit.server.util.ThreadLocalRequestContext;
 import com.google.gwtorm.server.OrmException;
 import com.google.gwtorm.server.SchemaFactory;
 import com.google.inject.Inject;
-import com.google.inject.Provider;
-import com.google.inject.ProvisionException;
+//import com.google.inject.Provider;
+//import com.google.inject.ProvisionException;
 import org.eclipse.jgit.errors.IncorrectObjectTypeException;
 import org.eclipse.jgit.errors.MissingObjectException;
 import org.eclipse.jgit.errors.RepositoryNotFoundException;
@@ -43,21 +42,20 @@ class ChangeEventListener implements ChangeListener {
     private WorkQueue workQueue;
     private GitRepositoryManager repoManager;
     private SchemaFactory<ReviewDb> schemaFactory;
-    private final ThreadLocalRequestContext tl;
+    /*private final ThreadLocalRequestContext tl;
     private final IdentifiedUser.GenericFactory identifiedUserFactory;
-    private ReviewDb db;
+    private ReviewDb db;*/
 
     @Inject
-    ChangeEventListener(final ReviewAssistant.Factory reviewAssistantFactory, final Storage storage, final WorkQueue workQueue, final GitRepositoryManager repoManager, final SchemaFactory<ReviewDb> schemaFactory, final IdentifiedUser.GenericFactory identifiedUserFactory, final ThreadLocalRequestContext tl) {
+    ChangeEventListener(final ReviewAssistant.Factory reviewAssistantFactory, final Storage storage, final WorkQueue workQueue, final GitRepositoryManager repoManager, final SchemaFactory<ReviewDb> schemaFactory/*, final IdentifiedUser.GenericFactory identifiedUserFactory, final ThreadLocalRequestContext tl*/) {
         this.storage = storage;
         this.workQueue = workQueue;
         this.reviewAssistantFactory = reviewAssistantFactory;
         this.repoManager = repoManager;
         this.schemaFactory = schemaFactory;
-        this.identifiedUserFactory = identifiedUserFactory;
-        this.tl = tl;
+        //this.identifiedUserFactory = identifiedUserFactory;
+        //this.tl = tl;
     }
-
 
     @Override
     public void onChangeEvent(ChangeEvent changeEvent) {
@@ -112,7 +110,7 @@ class ChangeEventListener implements ChangeListener {
                 workQueue.getDefaultQueue().submit(new Runnable() {
                     @Override
                     public void run() {
-                        RequestContext old = tl.setContext(new RequestContext() {
+                       /* RequestContext old = tl.setContext(new RequestContext() {
 
                             @Override
                             public CurrentUser getCurrentUser() {
@@ -136,15 +134,16 @@ class ChangeEventListener implements ChangeListener {
                                 };
                             }
                         });
-                        try {
+
+                        try {*/
                             task.run();
-                        } finally {
+                        /*} finally {
                             tl.setContext(old);
                             if (db != null) {
                                 db.close();
                                 db = null;
                             }
-                        }
+                        }*/
                     }
                 });
 
