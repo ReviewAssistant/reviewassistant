@@ -4,6 +4,7 @@ import com.github.nexception.reviewassistant.models.Calculation;
 import com.google.common.collect.Ordering;
 import com.google.gerrit.extensions.api.GerritApi;
 import com.google.gerrit.extensions.api.changes.ChangeApi;
+import com.google.gerrit.extensions.restapi.RestApiException;
 import com.google.gerrit.reviewdb.client.Account;
 import com.google.gerrit.reviewdb.client.Change;
 import com.google.gerrit.reviewdb.client.Patch.ChangeType;
@@ -197,6 +198,8 @@ public class ReviewAssistant implements Runnable {
                 log.info(entry.getKey() + " was added to this change");
             }
 
+        } catch (RestApiException e) {
+            log.error("Could not add reviewers, API-error");
         } catch (Exception e) {
             log.error("Could not add reviewers");
         }
