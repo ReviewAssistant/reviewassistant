@@ -5,13 +5,20 @@ import com.google.gerrit.reviewdb.client.Change;
 import com.google.gerrit.reviewdb.client.PatchSet;
 import com.google.gerrit.reviewdb.client.Project;
 import com.google.gerrit.reviewdb.server.ReviewDb;
+import com.google.gerrit.server.CurrentUser;
+import com.google.gerrit.server.IdentifiedUser;
+import com.google.gerrit.server.account.ChangeUserName;
 import com.google.gerrit.server.events.ChangeEvent;
 import com.google.gerrit.server.events.PatchSetCreatedEvent;
 import com.google.gerrit.server.git.GitRepositoryManager;
 import com.google.gerrit.server.git.WorkQueue;
+import com.google.gerrit.server.util.RequestContext;
+import com.google.gerrit.server.util.ThreadLocalRequestContext;
 import com.google.gwtorm.server.OrmException;
 import com.google.gwtorm.server.SchemaFactory;
 import com.google.inject.Inject;
+import com.google.inject.Provider;
+import com.google.inject.ProvisionException;
 import org.eclipse.jgit.errors.IncorrectObjectTypeException;
 import org.eclipse.jgit.errors.MissingObjectException;
 import org.eclipse.jgit.errors.RepositoryNotFoundException;
@@ -36,14 +43,19 @@ class ChangeEventListener implements ChangeListener {
     private WorkQueue workQueue;
     private GitRepositoryManager repoManager;
     private SchemaFactory<ReviewDb> schemaFactory;
+    private final ThreadLocalRequestContext tl;
+    private final IdentifiedUser.GenericFactory identifiedUserFactory;
+    private ReviewDb db;
 
     @Inject
-    ChangeEventListener(final ReviewAssistant.Factory reviewAssistantFactory, Storage storage, WorkQueue workQueue, GitRepositoryManager repoManager, final SchemaFactory<ReviewDb> schemaFactory) {
+    ChangeEventListener(final ReviewAssistant.Factory reviewAssistantFactory, final Storage storage, final WorkQueue workQueue, final GitRepositoryManager repoManager, final SchemaFactory<ReviewDb> schemaFactory, final IdentifiedUser.GenericFactory identifiedUserFactory, final ThreadLocalRequestContext tl) {
         this.storage = storage;
         this.workQueue = workQueue;
         this.reviewAssistantFactory = reviewAssistantFactory;
         this.repoManager = repoManager;
         this.schemaFactory = schemaFactory;
+        this.identifiedUserFactory = identifiedUserFactory;
+        this.tl = tl;
     }
 
 
@@ -71,22 +83,22 @@ class ChangeEventListener implements ChangeListener {
             return;
         }
 
-        final ReviewDb db;
+        final ReviewDb reviewDb;
         final RevWalk walk = new RevWalk(repo);
 
 
         try {
-            db = schemaFactory.open();
+            reviewDb = schemaFactory.open();
             try {
                 Change.Id changeId = new Change.Id(Integer.parseInt(event.change.number));
                 PatchSet.Id psId = new PatchSet.Id(changeId, Integer.parseInt(event.patchSet.number));
-                PatchSet ps = db.patchSets().get(psId);
+                PatchSet ps = reviewDb.patchSets().get(psId);
                 if (ps == null) {
                     log.warn("Could not find patch set " + psId.get());
                     return;
                 }
                 // psId.getParentKey = changeID
-                Change change = db.changes().get(psId.getParentKey());
+                final Change change = reviewDb.changes().get(psId.getParentKey());
                 if (change == null) {
                     log.warn("Could not find change " + psId.getParentKey());
                     return;
@@ -98,7 +110,39 @@ class ChangeEventListener implements ChangeListener {
                 workQueue.getDefaultQueue().submit(new Runnable() {
                     @Override
                     public void run() {
-                        task.run();
+                        RequestContext old = tl.setContext(new RequestContext() {
+
+                            @Override
+                            public CurrentUser getCurrentUser() {
+                                return identifiedUserFactory.create(change.getOwner());
+                            }
+
+                            @Override
+                            public Provider<ReviewDb> getReviewDbProvider() {
+                                return new Provider<ReviewDb>() {
+                                    @Override
+                                    public ReviewDb get() {
+                                        if (db == null) {
+                                            try {
+                                                db = schemaFactory.open();
+                                            } catch (OrmException e) {
+                                                throw new ProvisionException("Cannot open ReviewDb", e);
+                                            }
+                                        }
+                                        return db;
+                                    }
+                                };
+                            }
+                        });
+                        try {
+                            task.run();
+                        } finally {
+                            tl.setContext(old);
+                            if (db != null) {
+                                db.close();
+                                db = null;
+                            }
+                        }
                     }
                 });
 
@@ -109,7 +153,7 @@ class ChangeEventListener implements ChangeListener {
             } catch (IOException e) {
                 log.error(e.getMessage(), e);
             } finally {
-                db.close();
+                reviewDb.close();
             }
 
         } catch (OrmException e) {

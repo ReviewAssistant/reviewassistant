@@ -193,7 +193,7 @@ public class ReviewAssistant implements Runnable {
     private void addReviewers(Change change, List<Entry<Account, Integer>> list) {
         try {
             log.info("addReviewers started");
-            ChangeApi cApi = api.changes().id(change.getId().get());
+            ChangeApi cApi = api.changes().id(change.getChangeId());
             for (Entry<Account, Integer> entry : list) {
                 cApi.addReviewer(entry.getKey().getId().toString());
                 log.info(entry.getKey() + " was added to this change");
