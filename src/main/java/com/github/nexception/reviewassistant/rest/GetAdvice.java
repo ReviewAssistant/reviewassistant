@@ -42,7 +42,7 @@ public class GetAdvice implements RestReadView<RevisionResource> {
                 advice += calculation.minutes + " minutes";
             }
             advice += "</strong> reviewing this change.</div>";
-            if (calculation.sessions > 1) {
+            if (calculation.hours >= 1) {
                 advice += "<div>This should be split up in <strong>" + calculation.sessions +
                         " to " + (calculation.sessions + 1) + " sessions</strong>.</div>";
             }
