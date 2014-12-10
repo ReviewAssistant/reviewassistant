@@ -68,7 +68,6 @@ class ChangeEventListener implements ChangeListener {
         log.info("Received new commit: " + event.patchSet.revision);
 
         Project.NameKey projectName = new Project.NameKey(event.change.project);
-
         Repository repo;
         try {
             repo = repoManager.openRepository(projectName);

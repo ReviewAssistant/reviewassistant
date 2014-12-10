@@ -97,7 +97,7 @@ public class ReviewAssistant implements Runnable {
      * @return      the Calculation object for a review
      */
     public static Calculation calculate(ChangeInfo info) {
-        log.info("Received event: " + info.currentRevision);
+        log.info("Received event: " + info.currentRevision);    //Commit-ID
         Calculation calculation = new Calculation();
         calculation.commitId = info.currentRevision;
         calculation.totalReviewTime = calculateReviewTime(info);

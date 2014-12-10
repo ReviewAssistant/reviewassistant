@@ -45,7 +45,7 @@ public class GetAdvice implements RestReadView<RevisionResource> {
                 storage.storeCalculation(ReviewAssistant.calculate(info));
                 calculation = storage.fetchCalculation(resource.getPatchSet().getRevision().get()); // Fetch file again
             } catch (RestApiException e) {
-                e.printStackTrace();    // Should make use of log
+                e.printStackTrace();   // Should make use of log
             }
        }
 
