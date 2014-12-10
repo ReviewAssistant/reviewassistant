@@ -4,6 +4,7 @@ import com.github.nexception.reviewassistant.models.Calculation;
 import com.google.common.collect.Ordering;
 import com.google.gerrit.common.errors.EmailException;
 import com.google.gerrit.extensions.api.changes.AddReviewerInput;
+import com.google.gerrit.extensions.common.ChangeInfo;
 import com.google.gerrit.extensions.restapi.AuthException;
 import com.google.gerrit.extensions.restapi.BadRequestException;
 import com.google.gerrit.extensions.restapi.ResourceNotFoundException;
@@ -19,7 +20,6 @@ import com.google.gerrit.server.change.ChangeResource;
 import com.google.gerrit.server.change.ChangesCollection;
 import com.google.gerrit.server.change.PostReviewers;
 import com.google.gerrit.server.config.PluginConfigFactory;
-import com.google.gerrit.server.events.PatchSetCreatedEvent;
 import com.google.gerrit.server.patch.PatchList;
 import com.google.gerrit.server.patch.PatchListCache;
 import com.google.gerrit.server.patch.PatchListEntry;
@@ -93,17 +93,17 @@ public class ReviewAssistant implements Runnable {
     /**
      * Returns a Calculation object with all relevant information
      * regarding a review for a patch set.
-     * @param event the event for a patch set
+     * @param info the data for a patch set
      * @return      the Calculation object for a review
      */
-    public static Calculation calculate(PatchSetCreatedEvent event) {
-        log.info("Received event: " + event.patchSet.revision);
+    public static Calculation calculate(ChangeInfo info) {
+        log.info("Received event: " + info.currentRevision);
         Calculation calculation = new Calculation();
-        calculation.commitId = event.patchSet.revision;
-        calculation.totalReviewTime = calculateReviewTime(event);
-        calculation.hours = calculateReviewTime(event) / 60;
-        calculation.minutes = calculateReviewTime(event) % 60;
-        calculation.sessions = calculateReviewSessions(calculateReviewTime(event));
+        calculation.commitId = info.currentRevision;
+        calculation.totalReviewTime = calculateReviewTime(info);
+        calculation.hours = calculateReviewTime(info) / 60;
+        calculation.minutes = calculateReviewTime(info) % 60;
+        calculation.sessions = calculateReviewSessions(calculateReviewTime(info));
         calculation.sessionTime = 60;
 
         return calculation;
@@ -114,11 +114,11 @@ public class ReviewAssistant implements Runnable {
      * Adds all line insertions and deletions for a patch set and calculates
      * the amount of minutes needed.
      * This calculation is based on the optimum review rate of 5 LOC in 1 minute.
-     * @param event the event for a patch set
+     * @param info the data for a patch set
      * @return      the total amount of time recommended for a review
      */
-    private static int calculateReviewTime(PatchSetCreatedEvent event) {
-        int lines = event.patchSet.sizeInsertions + Math.abs(event.patchSet.sizeDeletions);
+    private static int calculateReviewTime(ChangeInfo info) {
+        int lines = info.insertions + Math.abs(info.deletions);
         int minutes = (int) Math.ceil(lines / 5);
         if(minutes < 5) {
             minutes = 5;
