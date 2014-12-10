@@ -67,11 +67,7 @@ class ChangeEventListener implements ChangeListener {
         PatchSetCreatedEvent event = (PatchSetCreatedEvent) changeEvent;
         log.info("Received new commit: " + event.patchSet.revision);
 
-        //TODO: Move this to the servlet.
-        storage.storeCalculation(ReviewAssistant.calculate(event));
-
         Project.NameKey projectName = new Project.NameKey(event.change.project);
-
         Repository repo;
         try {
             repo = repoManager.openRepository(projectName);
