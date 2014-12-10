@@ -120,6 +120,8 @@ public class ReviewAssistant implements Runnable {
     private static int calculateReviewTime(PatchSetCreatedEvent event) {
         int lines = event.patchSet.sizeInsertions + Math.abs(event.patchSet.sizeDeletions);
         int minutes = (int) Math.ceil(lines / 5);
+        minutes = (int) Math.ceil(minutes / 5.0);
+        minutes = minutes * 5;
         if(minutes < 5) {
             minutes = 5;
         }
@@ -133,7 +135,7 @@ public class ReviewAssistant implements Runnable {
      * @return        the recommended amount of review sessions
      */
     private static int calculateReviewSessions(int minutes) {
-        int sessions = Math.round(minutes / 60);
+        int sessions = (int) Math.round(minutes / 60.0);
         if (sessions < 1) {
             sessions = 1;
         }
