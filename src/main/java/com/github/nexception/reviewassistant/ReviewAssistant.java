@@ -3,11 +3,13 @@ package com.github.nexception.reviewassistant;
 import com.github.nexception.reviewassistant.models.Calculation;
 import com.google.common.collect.Ordering;
 import com.google.gerrit.common.errors.EmailException;
+import com.google.gerrit.extensions.api.GerritApi;
 import com.google.gerrit.extensions.api.changes.AddReviewerInput;
 import com.google.gerrit.extensions.common.ChangeInfo;
 import com.google.gerrit.extensions.restapi.AuthException;
 import com.google.gerrit.extensions.restapi.BadRequestException;
 import com.google.gerrit.extensions.restapi.ResourceNotFoundException;
+import com.google.gerrit.extensions.restapi.RestApiException;
 import com.google.gerrit.extensions.restapi.UnprocessableEntityException;
 import com.google.gerrit.reviewdb.client.Account;
 import com.google.gerrit.reviewdb.client.Change;
@@ -64,6 +66,7 @@ public class ReviewAssistant implements Runnable {
     private final ChangesCollection changes;
     private static final Logger log = LoggerFactory.getLogger(ReviewAssistant.class);
     private final Project.NameKey projectName;
+    private final GerritApi gApi;
 
     public interface Factory {
         ReviewAssistant create(RevCommit commit, Change change, PatchSet ps, Repository repo, Project.NameKey projectName);
@@ -71,7 +74,7 @@ public class ReviewAssistant implements Runnable {
 
     @Inject
     public ReviewAssistant(final PatchListCache patchListCache, final AccountCache accountCache,
-                           final ChangesCollection changes,
+                           final ChangesCollection changes, final GerritApi gApi,
                            final Provider<PostReviewers> reviewersProvider,
                            final AccountByEmailCache emailCache, final PluginConfigFactory cfg,
                            @Assisted final RevCommit commit, @Assisted final Change change,
@@ -88,6 +91,7 @@ public class ReviewAssistant implements Runnable {
         this.projectName = projectName;
         this.changes = changes;
         this.reviewersProvider = reviewersProvider;
+        this.gApi = gApi;
     }
 
     /**
@@ -244,8 +248,38 @@ public class ReviewAssistant implements Runnable {
         }
     }
 
+    /**
+     * Please be advised that this method is NOT working in
+     * its current state.
+     *
+     * Gets the amount of open changes for an email.
+     * @param email the email to check open changes for
+     * @return the amount of open changes
+     */
+    private int getOpenChanges(String email) {
+        int open = 0;
+        try {
+            /*
+             * A list of ChangeInfo is requested from the database, using
+             * the query method in the Changes interface.
+             * This query has a string parameter, similar to the search query
+             * done in the search bar in the web application for Gerrit.
+             */
+            List<ChangeInfo> infoList = gApi.changes().query("status:open reviewer:" + email).get();
+            open = infoList.size(); //The size of this list represents the amount of open changes
+        } catch (RestApiException e) {
+            log.error(e.getMessage(), e);
+        } catch (Exception e) {
+            log.error(e.getMessage(), e);
+        }
+        return open;
+    }
+
     @Override
     public void run() {
+        String email = "gustav.jp@live.se";
+        int open = getOpenChanges(email);
+        log.info("Got {} open changes for user {}", open, email);
         PatchList patchList;
         try {
             patchList = patchListCache.get(change, ps);
