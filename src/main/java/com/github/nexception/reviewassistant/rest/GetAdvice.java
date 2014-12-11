@@ -42,7 +42,7 @@ public class GetAdvice implements RestReadView<RevisionResource> {
             try {
                 cApi = gApi.changes().id(resource.getChange().getChangeId());
                 ChangeInfo info = cApi.get();
-                calculation = ReviewAssistant.calculate((info));
+                calculation = ReviewAssistant.calculate(info);
                 storage.storeCalculation(calculation);
             } catch (RestApiException e) {
                 e.printStackTrace();   // Should make use of log
