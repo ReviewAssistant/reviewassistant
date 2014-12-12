@@ -9,3 +9,17 @@ performed to be as effective as possible. The review time suggestions are based 
 * Five lines per minute is considered to be the optimum review speed.
 * Reviewers should not spend more than 60 minutes reviewing. If the review is expected to take longer, it is recommended
  to split the review into several sessions.
+
+ReviewAssistant is also capable of adding reviewers automatically, based on the git-blame on the changed files.
+
+## Credits
+
+The rules are based on Jenkins ReviewBuddy by switchgears.
+
+* [ReviewBuddy presentation on slideshare](http://www.slideshare.net/AskeOlsson/jenkins-review-buddy)
+* [switchgears on github](https://github.com/switchgears/gerrit-review-buddy)
+
+Other notable sources of inspiration include
+
+* [reviewers-by-blame plugin for Gerrit](https://gerrit.googlesource.com/plugins/reviewers-by-blame/)
+* [reviewers plugin for Gerrit](https://gerrit.googlesource.com/plugins/reviewers/)
