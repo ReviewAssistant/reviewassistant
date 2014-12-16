@@ -2,12 +2,14 @@ package com.github.nexception.reviewassistant;
 
 import com.github.nexception.reviewassistant.models.Calculation;
 import com.google.common.collect.Ordering;
-import com.google.gerrit.common.errors.EmailException;
-import com.google.gerrit.extensions.api.changes.AddReviewerInput;
+import com.google.gerrit.extensions.api.changes.ChangeApi;
+import com.google.gerrit.extensions.api.GerritApi;
 import com.google.gerrit.extensions.common.ChangeInfo;
+import com.google.gerrit.extensions.common.ListChangesOption;
 import com.google.gerrit.extensions.restapi.AuthException;
 import com.google.gerrit.extensions.restapi.BadRequestException;
 import com.google.gerrit.extensions.restapi.ResourceNotFoundException;
+import com.google.gerrit.extensions.restapi.RestApiException;
 import com.google.gerrit.extensions.restapi.UnprocessableEntityException;
 import com.google.gerrit.reviewdb.client.Account;
 import com.google.gerrit.reviewdb.client.Change;
@@ -16,18 +18,13 @@ import com.google.gerrit.reviewdb.client.PatchSet;
 import com.google.gerrit.reviewdb.client.Project;
 import com.google.gerrit.server.account.AccountByEmailCache;
 import com.google.gerrit.server.account.AccountCache;
-import com.google.gerrit.server.change.ChangeResource;
-import com.google.gerrit.server.change.ChangesCollection;
-import com.google.gerrit.server.change.PostReviewers;
 import com.google.gerrit.server.config.PluginConfigFactory;
 import com.google.gerrit.server.patch.PatchList;
 import com.google.gerrit.server.patch.PatchListCache;
 import com.google.gerrit.server.patch.PatchListEntry;
 import com.google.gerrit.server.patch.PatchListNotAvailableException;
 import com.google.gerrit.server.project.NoSuchProjectException;
-import com.google.gwtorm.server.OrmException;
 import com.google.inject.Inject;
-import com.google.inject.Provider;
 import com.google.inject.assistedinject.Assisted;
 import org.eclipse.jgit.api.BlameCommand;
 import org.eclipse.jgit.api.errors.GitAPIException;
@@ -37,7 +34,6 @@ import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.revwalk.RevCommit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -63,24 +59,21 @@ public class ReviewAssistant implements Runnable {
     private final Repository repo;
     private final RevCommit commit;
     private final PluginConfigFactory cfg;
-    private final Provider<PostReviewers> reviewersProvider;
-    private final ChangesCollection changes;
     private static final Logger log = LoggerFactory.getLogger(ReviewAssistant.class);
     private final Project.NameKey projectName;
-    private final List<ChangeInfo> infoList;
+    private final GerritApi gApi;
 
     public interface Factory {
-        ReviewAssistant create(RevCommit commit, Change change, PatchSet ps, Repository repo, Project.NameKey projectName, List<ChangeInfo> infoList);
+        ReviewAssistant create(RevCommit commit, Change change, PatchSet ps, Repository repo, Project.NameKey projectName);
     }
 
     @Inject
     public ReviewAssistant(final PatchListCache patchListCache, final AccountCache accountCache,
-                           final ChangesCollection changes,
-                           final Provider<PostReviewers> reviewersProvider,
-                           final AccountByEmailCache emailCache, final PluginConfigFactory cfg,
+                           final GerritApi gApi, final AccountByEmailCache emailCache,
+                           final PluginConfigFactory cfg,
                            @Assisted final RevCommit commit, @Assisted final Change change,
                            @Assisted final PatchSet ps, @Assisted final Repository repo,
-                           @Assisted final Project.NameKey projectName, @Assisted final List<ChangeInfo> infoList) {
+                           @Assisted final Project.NameKey projectName) {
         this.commit = commit;
         this.change = change;
         this.ps = ps;
@@ -90,9 +83,7 @@ public class ReviewAssistant implements Runnable {
         this.emailCache = emailCache;
         this.cfg = cfg;
         this.projectName = projectName;
-        this.changes = changes;
-        this.reviewersProvider = reviewersProvider;
-        this.infoList = infoList;
+        this.gApi = gApi;
     }
 
     /**
@@ -156,14 +147,16 @@ public class ReviewAssistant implements Runnable {
      * @return a list of emails of users with +2 rights
      */
 
-    private List<String> getApprovalAccount() {
-        Set<String> reviewersApproved = new HashSet<>();    // Change string to Account.Id
-        for(ChangeInfo info : infoList){
-            reviewersApproved.add(info.labels.get("Code-Review").approved.email);
-
-            emailCache.get(commit.getAuthorIdent().getEmailAddress());
+    private List<Integer> getApprovalAccount() {
+        Set<Integer> reviewersApproved = new HashSet<>();
+        try {
+            List<ChangeInfo> infoList = gApi.changes().query("status:merged label:Code-Review=2 project:" + projectName.toString()).withOption(ListChangesOption.LABELS).get();
+            for(ChangeInfo info : infoList){
+                reviewersApproved.add(info.labels.get("Code-Review").approved._accountId);
+            }
+        } catch (RestApiException e) {
+            e.printStackTrace();
         }
-
         return new ArrayList<>(reviewersApproved);
     }
 
@@ -178,7 +171,6 @@ public class ReviewAssistant implements Runnable {
         BlameCommand blameCommand = new BlameCommand(repo);
         blameCommand.setStartCommit(commit);
         blameCommand.setFilePath(file.getNewName());
-
         try {
             BlameResult blameResult = blameCommand.call();
             blameResult.computeAll();
@@ -247,29 +239,39 @@ public class ReviewAssistant implements Runnable {
      */
     private void addReviewers(Change change, List<Entry<Account, Integer>> list) {
         try {
-            ChangeResource changeResource = changes.parse(change.getId());
-            PostReviewers post = reviewersProvider.get();
+            ChangeApi cApi = gApi.changes().id(change.getId().get());
             for (Entry<Account, Integer> entry : list) {
-                AddReviewerInput input = new AddReviewerInput();
-                input.reviewer = entry.getKey().getId().toString();
-                post.apply(changeResource, input);
+                cApi.addReviewer(entry.getKey().getId().toString());
                 log.info("{} was added to change {}", entry.getKey().getPreferredEmail(), change.getChangeId());
             }
         } catch (ResourceNotFoundException e) {
             log.error(e.getMessage(), e);
         } catch (BadRequestException e) {
             log.error(e.getMessage(), e);
-        } catch (IOException e) {
-            log.error(e.getMessage(), e);
         } catch (UnprocessableEntityException e) {
-            log.error(e.getMessage(), e);
-        } catch (OrmException e) {
             log.error(e.getMessage(), e);
         } catch (AuthException e) {
             log.error(e.getMessage(), e);
-        } catch (EmailException e) {
+        } catch (RestApiException e) {
             log.error(e.getMessage(), e);
         }
+    }
+
+    /**
+     *
+     * Gets the amount of open changes for an email.
+     * @param email the email to check open changes for
+     * @return the amount of open changes
+     */
+    private int getOpenChanges(String email) {
+        int open = 0;
+        try {
+            List<ChangeInfo> infoList = gApi.changes().query("status:open reviewer:" + email).get();
+            open = infoList.size();
+        } catch (RestApiException e) {
+            log.error(e.getMessage(), e);
+        }
+        return open;
     }
 
     @Override
@@ -309,6 +311,6 @@ public class ReviewAssistant implements Runnable {
             }
         }
         addReviewers(change, reviewers);
-        getApprovalAccount();
+        List<Integer> approvedAccounts = getApprovalAccount();
     }
 }
