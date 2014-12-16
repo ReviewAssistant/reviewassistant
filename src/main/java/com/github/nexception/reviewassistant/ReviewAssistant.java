@@ -39,8 +39,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -148,17 +150,21 @@ public class ReviewAssistant implements Runnable {
         return sessions;
     }
 
-    private Account getApprovalAccount() {
-        log.info("Start");
-        //log.info("asd {}", info.get(0).labels.get("Code-Review").approved.name);
-        log.info(String.valueOf(infoList.size()));
-        log.info(String.valueOf(infoList.get(0).created));
-        log.info(String.valueOf(infoList.get(0).insertions));
-        for(ChangeInfo Info : infoList){
-            log.info(Info.labels.get("Code-Review").approved.name);
+    /**
+     * Fetches all users with +2 rights from the list of changeInfo.
+     *
+     * @return a list of emails of users with +2 rights
+     */
+
+    private List<String> getApprovalAccount() {
+        Set<String> reviewersApproved = new HashSet<>();    // Change string to Account.Id
+        for(ChangeInfo info : infoList){
+            reviewersApproved.add(info.labels.get("Code-Review").approved.email);
+
+            emailCache.get(commit.getAuthorIdent().getEmailAddress());
         }
 
-        return null;
+        return new ArrayList<>(reviewersApproved);
     }
 
     /**
