@@ -67,10 +67,10 @@ public class ReviewAssistant implements Runnable {
     private final ChangesCollection changes;
     private static final Logger log = LoggerFactory.getLogger(ReviewAssistant.class);
     private final Project.NameKey projectName;
-    private final List<ChangeInfo> infoList;
+    private final ArrayList<List<ChangeInfo>> listList;
 
     public interface Factory {
-        ReviewAssistant create(RevCommit commit, Change change, PatchSet ps, Repository repo, Project.NameKey projectName, List<ChangeInfo> infoList);
+        ReviewAssistant create(RevCommit commit, Change change, PatchSet ps, Repository repo, Project.NameKey projectName, ArrayList<List<ChangeInfo>> listList);
     }
 
     @Inject
@@ -80,7 +80,7 @@ public class ReviewAssistant implements Runnable {
                            final AccountByEmailCache emailCache, final PluginConfigFactory cfg,
                            @Assisted final RevCommit commit, @Assisted final Change change,
                            @Assisted final PatchSet ps, @Assisted final Repository repo,
-                           @Assisted final Project.NameKey projectName, @Assisted final List<ChangeInfo> infoList) {
+                           @Assisted final Project.NameKey projectName, @Assisted final ArrayList<List<ChangeInfo>> listList) {
         this.commit = commit;
         this.change = change;
         this.ps = ps;
@@ -92,7 +92,7 @@ public class ReviewAssistant implements Runnable {
         this.projectName = projectName;
         this.changes = changes;
         this.reviewersProvider = reviewersProvider;
-        this.infoList = infoList;
+        this.listList = listList;
     }
 
     /**
@@ -158,9 +158,9 @@ public class ReviewAssistant implements Runnable {
 
     private List<String> getApprovalAccount() {
         Set<String> reviewersApproved = new HashSet<>();    // Change string to Account.Id
+        List<ChangeInfo> infoList = listList.get(0);
         for(ChangeInfo info : infoList){
             reviewersApproved.add(info.labels.get("Code-Review").approved.email);
-
             emailCache.get(commit.getAuthorIdent().getEmailAddress());
         }
 
@@ -272,6 +272,16 @@ public class ReviewAssistant implements Runnable {
         }
     }
 
+    private Map<String, Integer> getOpenChanges() {
+        log.info("counting open changes...");
+        List<ChangeInfo> openList = listList.get(1);
+        Map<String, Integer> openMap = new HashMap<>();
+        for(ChangeInfo open : openList) {
+            log.info(open.changeId);
+        }
+        return null;
+    }
+
     @Override
     public void run() {
         PatchList patchList;
@@ -310,5 +320,6 @@ public class ReviewAssistant implements Runnable {
         }
         addReviewers(change, reviewers);
         getApprovalAccount();
+        getOpenChanges();
     }
 }

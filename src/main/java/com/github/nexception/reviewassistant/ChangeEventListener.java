@@ -32,6 +32,7 @@ import org.eclipse.jgit.revwalk.RevWalk;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -114,14 +115,18 @@ class ChangeEventListener implements ChangeListener {
 
 
                 //NEEDS CLEAN-UP
-                List<ChangeInfo> infoList = null;
+                List<ChangeInfo> infoList;
+                List<ChangeInfo> openList;
+                ArrayList<List<ChangeInfo>> listList = new ArrayList<>();
                 try {
-                    infoList = gApi.changes().query("status:merged label:Code-Review=2").withOption(ListChangesOption.LABELS).get();
-                    // GUSTAV
+                    infoList = gApi.changes().query("status:merged label:Code-Review=2 project:" + projectName.toString()).withOption(ListChangesOption.LABELS).get();
+                    openList = gApi.changes().query("status:open project:" + projectName.toString()).withOption(ListChangesOption.DETAILED_LABELS).get();
+                    listList.add(infoList);
+                    listList.add(openList);
                 } catch (RestApiException e) {
                     e.printStackTrace();
                 }
-                final Runnable task = reviewAssistantFactory.create(commit, change, ps, repo, projectName, infoList);
+                final Runnable task = reviewAssistantFactory.create(commit, change, ps, repo, projectName, listList);
                 workQueue.getDefaultQueue().submit(new Runnable() {
                     @Override
                     public void run() {
