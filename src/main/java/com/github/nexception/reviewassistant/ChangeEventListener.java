@@ -1,6 +1,10 @@
 package com.github.nexception.reviewassistant;
 
 import com.google.gerrit.common.ChangeListener;
+import com.google.gerrit.extensions.api.GerritApi;
+import com.google.gerrit.extensions.common.ChangeInfo;
+import com.google.gerrit.extensions.common.ListChangesOption;
+import com.google.gerrit.extensions.restapi.RestApiException;
 import com.google.gerrit.reviewdb.client.Change;
 import com.google.gerrit.reviewdb.client.PatchSet;
 import com.google.gerrit.reviewdb.client.Project;
@@ -28,6 +32,7 @@ import org.eclipse.jgit.revwalk.RevWalk;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.io.IOException;
+import java.util.List;
 
 /**
  * The change event listener listens to new commits and passes them on to the algorithm.
@@ -43,13 +48,15 @@ class ChangeEventListener implements ChangeListener {
     private final ThreadLocalRequestContext tl;
     private final IdentifiedUser.GenericFactory identifiedUserFactory;
     private ReviewDb db;
+    private GerritApi gApi;
 
     @Inject
     ChangeEventListener(final ReviewAssistant.Factory reviewAssistantFactory, final Storage storage,
                         final WorkQueue workQueue, final GitRepositoryManager repoManager,
                         final SchemaFactory<ReviewDb> schemaFactory,
                         final IdentifiedUser.GenericFactory identifiedUserFactory,
-                        final ThreadLocalRequestContext tl) {
+                        final ThreadLocalRequestContext tl,
+                        final GerritApi gApi) {
         this.storage = storage;
         this.workQueue = workQueue;
         this.reviewAssistantFactory = reviewAssistantFactory;
@@ -57,6 +64,7 @@ class ChangeEventListener implements ChangeListener {
         this.schemaFactory = schemaFactory;
         this.identifiedUserFactory = identifiedUserFactory;
         this.tl = tl;
+        this.gApi = gApi;
     }
 
     @Override
@@ -103,7 +111,17 @@ class ChangeEventListener implements ChangeListener {
 
                 //TODO: Make the create method take only project name, change and patchset.
                 //TODO: (The rest should be moved into ReviewAssistant)
-                final Runnable task = reviewAssistantFactory.create(commit, change, ps, repo, projectName);
+
+
+                //NEEDS CLEAN-UP
+                List<ChangeInfo> infoList = null;
+                try {
+                    infoList = gApi.changes().query("status:merged label:Code-Review=2").withOption(ListChangesOption.LABELS).get();
+                    // GUSTAV
+                } catch (RestApiException e) {
+                    e.printStackTrace();
+                }
+                final Runnable task = reviewAssistantFactory.create(commit, change, ps, repo, projectName, infoList);
                 workQueue.getDefaultQueue().submit(new Runnable() {
                     @Override
                     public void run() {

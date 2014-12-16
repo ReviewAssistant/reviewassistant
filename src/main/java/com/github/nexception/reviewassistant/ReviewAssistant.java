@@ -37,6 +37,7 @@ import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.revwalk.RevCommit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import java.io.IOException;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -64,9 +65,10 @@ public class ReviewAssistant implements Runnable {
     private final ChangesCollection changes;
     private static final Logger log = LoggerFactory.getLogger(ReviewAssistant.class);
     private final Project.NameKey projectName;
+    private final List<ChangeInfo> infoList;
 
     public interface Factory {
-        ReviewAssistant create(RevCommit commit, Change change, PatchSet ps, Repository repo, Project.NameKey projectName);
+        ReviewAssistant create(RevCommit commit, Change change, PatchSet ps, Repository repo, Project.NameKey projectName, List<ChangeInfo> info);
     }
 
     @Inject
@@ -76,7 +78,7 @@ public class ReviewAssistant implements Runnable {
                            final AccountByEmailCache emailCache, final PluginConfigFactory cfg,
                            @Assisted final RevCommit commit, @Assisted final Change change,
                            @Assisted final PatchSet ps, @Assisted final Repository repo,
-                           @Assisted final Project.NameKey projectName) {
+                           @Assisted final Project.NameKey projectName, @Assisted final List<ChangeInfo> infoList) {
         this.commit = commit;
         this.change = change;
         this.ps = ps;
@@ -88,13 +90,15 @@ public class ReviewAssistant implements Runnable {
         this.projectName = projectName;
         this.changes = changes;
         this.reviewersProvider = reviewersProvider;
+        this.infoList = infoList;
     }
 
     /**
      * Returns a Calculation object with all relevant information
      * regarding a review for a patch set.
+     *
      * @param info the data for a patch set
-     * @return      the Calculation object for a review
+     * @return the Calculation object for a review
      */
     public static Calculation calculate(ChangeInfo info) {
         log.info("Received event: " + info.currentRevision);    //Commit-ID
@@ -114,15 +118,16 @@ public class ReviewAssistant implements Runnable {
      * Adds all line insertions and deletions for a patch set and calculates
      * the amount of minutes needed.
      * This calculation is based on the optimum review rate of 5 LOC in 1 minute.
+     *
      * @param info the data for a patch set
-     * @return      the total amount of time recommended for a review
+     * @return the total amount of time recommended for a review
      */
     private static int calculateReviewTime(ChangeInfo info) {
         int lines = info.insertions + Math.abs(info.deletions);
         int minutes = (int) Math.ceil(lines / 5);
         minutes = (int) Math.ceil(minutes / 5.0);
         minutes = minutes * 5;
-        if(minutes < 5) {
+        if (minutes < 5) {
             minutes = 5;
         }
         return minutes;
@@ -131,8 +136,9 @@ public class ReviewAssistant implements Runnable {
     /**
      * Returns the recommended amount of review sessions for a review.
      * Divides the total amount of review time up in 60 minute sessions.
+     *
      * @param minutes the total amount of time recommended for a review
-     * @return        the recommended amount of review sessions
+     * @return the recommended amount of review sessions
      */
     private static int calculateReviewSessions(int minutes) {
         int sessions = (int) Math.round(minutes / 60.0);
@@ -142,10 +148,24 @@ public class ReviewAssistant implements Runnable {
         return sessions;
     }
 
+    private Account getApprovalAccount() {
+        log.info("Start");
+        //log.info("asd {}", info.get(0).labels.get("Code-Review").approved.name);
+        log.info(String.valueOf(infoList.size()));
+        log.info(String.valueOf(infoList.get(0).created));
+        log.info(String.valueOf(infoList.get(0).insertions));
+        for(ChangeInfo Info : infoList){
+            log.info(Info.labels.get("Code-Review").approved.name);
+        }
+
+        return null;
+    }
+
     /**
      * Calculates blame data for a given file and commit.
+     *
      * @param commit the commit to base the blame command on
-     * @param file the file for which to calculate blame data
+     * @param file   the file for which to calculate blame data
      * @return BlameResult
      */
     private BlameResult calculateBlame(RevCommit commit, PatchListEntry file) {
@@ -168,7 +188,8 @@ public class ReviewAssistant implements Runnable {
     /**
      * Calculates all reviewers based on a blame result. The result is a map of accounts and integers
      * where the integer represents the number of occurrences of the account in the commit history.
-     * @param edits list of edited rows for a file
+     *
+     * @param edits       list of edited rows for a file
      * @param blameResult result from git blame for a specific file
      * @return a list of accounts and integers
      */
@@ -214,8 +235,9 @@ public class ReviewAssistant implements Runnable {
 
     /**
      * Adds reviewers to the change.
+     *
      * @param change the change for which reviewers should be added
-     * @param list list of reviewers
+     * @param list   list of reviewers
      */
     private void addReviewers(Change change, List<Entry<Account, Integer>> list) {
         try {
@@ -281,5 +303,6 @@ public class ReviewAssistant implements Runnable {
             }
         }
         addReviewers(change, reviewers);
+        getApprovalAccount();
     }
 }
