@@ -62,6 +62,7 @@ public class ReviewAssistant implements Runnable {
     private static final Logger log = LoggerFactory.getLogger(ReviewAssistant.class);
     private final Project.NameKey projectName;
     private final GerritApi gApi;
+    public static boolean realUser = false;
 
     public interface Factory {
         ReviewAssistant create(RevCommit commit, Change change, PatchSet ps, Repository repo, Project.NameKey projectName);
@@ -310,7 +311,10 @@ public class ReviewAssistant implements Runnable {
                 }
             }
         }
+        //bool below should be moved into addReviewers
+        realUser = true;
         addReviewers(change, reviewers);
+        realUser = false;
         List<Integer> approvedAccounts = getApprovalAccounts();
     }
 }

@@ -6,6 +6,7 @@ import com.google.gerrit.reviewdb.client.PatchSet;
 import com.google.gerrit.reviewdb.client.Project;
 import com.google.gerrit.reviewdb.server.ReviewDb;
 import com.google.gerrit.server.CurrentUser;
+import com.google.gerrit.server.IdentifiedUser;
 import com.google.gerrit.server.PluginUser;
 import com.google.gerrit.server.events.ChangeEvent;
 import com.google.gerrit.server.events.PatchSetCreatedEvent;
@@ -42,18 +43,21 @@ class ChangeEventListener implements ChangeListener {
     private final ThreadLocalRequestContext tl;
     private ReviewDb db;
     private final PluginUser pluginUser;
+    private final IdentifiedUser.GenericFactory identifiedUserFactory;
 
     @Inject
     ChangeEventListener(final ReviewAssistant.Factory reviewAssistantFactory,
                         final WorkQueue workQueue, final GitRepositoryManager repoManager,
                         final SchemaFactory<ReviewDb> schemaFactory,
-                        final ThreadLocalRequestContext tl, final PluginUser pluginUser) {
+                        final ThreadLocalRequestContext tl, final PluginUser pluginUser,
+                        final IdentifiedUser.GenericFactory identifiedUserFactory) {
         this.workQueue = workQueue;
         this.reviewAssistantFactory = reviewAssistantFactory;
         this.repoManager = repoManager;
         this.schemaFactory = schemaFactory;
         this.tl = tl;
         this.pluginUser = pluginUser;
+        this.identifiedUserFactory = identifiedUserFactory;
     }
 
     @Override
@@ -108,7 +112,11 @@ class ChangeEventListener implements ChangeListener {
 
                             @Override
                             public CurrentUser getCurrentUser() {
-                                return pluginUser;
+                                if(!ReviewAssistant.realUser) {
+                                    return pluginUser;
+                                } else {
+                                    return identifiedUserFactory.create(change.getOwner());
+                                }
                             }
 
                             @Override
