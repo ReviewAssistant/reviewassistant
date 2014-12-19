@@ -150,7 +150,7 @@ public class ReviewAssistant implements Runnable {
     private List<Integer> getApprovalAccounts() {
         Set<Integer> reviewersApproved = new HashSet<>();
         try {
-            List<ChangeInfo> infoList = gApi.changes().query("status:merged label:Code-Review=2 project:" + projectName.toString()).withOption(ListChangesOption.LABELS).get();
+            List<ChangeInfo> infoList = gApi.changes().query("status:merged -age:8weeks label:Code-Review=2 project:" + projectName.toString()).withOption(ListChangesOption.LABELS).get();
             for (ChangeInfo info : infoList) {
                 reviewersApproved.add(info.labels.get("Code-Review").approved._accountId);
             }
@@ -260,13 +260,13 @@ public class ReviewAssistant implements Runnable {
     /**
      * Gets the amount of open changes for an email.
      *
-     * @param email the email to check open changes for
+     * @param accountId the account ID to check open changes for
      * @return the amount of open changes
      */
-    private int getOpenChanges(String email) {
+    private int getOpenChanges(int accountId) {
         int open = 0;
         try {
-            List<ChangeInfo> infoList = gApi.changes().query("status:open reviewer:" + email).get();
+            List<ChangeInfo> infoList = gApi.changes().query("status:open reviewer:" + accountId).get();
             open = infoList.size();
         } catch (RestApiException e) {
             log.error(e.getMessage(), e);
