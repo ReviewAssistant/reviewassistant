@@ -102,7 +102,6 @@ public class ReviewAssistant implements Runnable {
         calculation.hours = calculateReviewTime(info) / 60;
         calculation.minutes = calculateReviewTime(info) % 60;
         calculation.sessions = calculateReviewSessions(calculateReviewTime(info));
-        calculation.sessionTime = 60;
 
         return calculation;
     }

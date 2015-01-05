@@ -14,6 +14,8 @@ import com.google.gerrit.extensions.restapi.RestReadView;
 import com.google.gerrit.server.change.RevisionResource;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * This rest view fetches a calculation and returns it. It is used by the front-end to
@@ -25,6 +27,7 @@ public class GetAdvice implements RestReadView<RevisionResource> {
     private Storage storage;
     private GerritApi gApi;
     private ChangeApi cApi;
+    private static final Logger log = LoggerFactory.getLogger(GetAdvice.class);
 
     @Inject
     public GetAdvice(GerritApi gApi, Storage storage) {
@@ -37,15 +40,14 @@ public class GetAdvice implements RestReadView<RevisionResource> {
         Calculation calculation = storage.fetchCalculation(resource.getPatchSet().getRevision().get());
         String advice = "<div id=\"reviewAssistant\" style=\"padding-top: 10px;\" ><strong>ReviewAssistant</strong>";
         advice += "<div>Reviewers should spend <strong>";
-        // Still missing gif-file
-        if (calculation == null) {
+        if (calculation == null || calculation.totalReviewTime == 0) {
             try {
                 cApi = gApi.changes().id(resource.getChange().getChangeId());
                 ChangeInfo info = cApi.get();
                 calculation = ReviewAssistant.calculate(info);
                 storage.storeCalculation(calculation);
             } catch (RestApiException e) {
-                e.printStackTrace();   // Should make use of log
+                log.error(e.getMessage(), e);
             }
         }
         if (calculation.hours == 1) {
