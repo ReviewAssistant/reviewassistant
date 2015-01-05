@@ -2,8 +2,8 @@ package com.github.nexception.reviewassistant;
 
 import com.github.nexception.reviewassistant.models.Calculation;
 import com.google.common.collect.Ordering;
-import com.google.gerrit.extensions.api.changes.ChangeApi;
 import com.google.gerrit.extensions.api.GerritApi;
+import com.google.gerrit.extensions.api.changes.ChangeApi;
 import com.google.gerrit.extensions.common.ChangeInfo;
 import com.google.gerrit.extensions.common.ListChangesOption;
 import com.google.gerrit.extensions.restapi.AuthException;
@@ -34,11 +34,11 @@ import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.revwalk.RevCommit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import java.io.IOException;
-import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -148,17 +148,28 @@ public class ReviewAssistant implements Runnable {
      * @return a list of emails of users with +2 rights
      */
 
-    private List<Integer> getApprovalAccounts() {
-        Set<Integer> reviewersApproved = new HashSet<>();
+    private List<Entry<Account, Integer>> getApprovalAccounts() {
+        Map<Account, Integer> reviewersApproved = new HashMap<>();
         try {
             List<ChangeInfo> infoList = gApi.changes().query("status:merged -age:8weeks label:Code-Review=2 project:" + projectName.toString()).withOption(ListChangesOption.LABELS).get();
             for (ChangeInfo info : infoList) {
-                reviewersApproved.add(info.labels.get("Code-Review").approved._accountId);
+                Account account = accountCache.get(new Account.Id(info.labels.get("Code-Review").approved._accountId)).getAccount();
+                if (reviewersApproved.containsKey(account)) {
+                    reviewersApproved.put(account, reviewersApproved.get(account) + 1);
+                } else {
+                    reviewersApproved.put(account, 1);
+                }
             }
         } catch (RestApiException e) {
             log.error(e.getMessage(), e);
         }
-        return new ArrayList<>(reviewersApproved);
+        List<Entry<Account, Integer>> approvalAccounts = Ordering.from(new Comparator<Entry<Account, Integer>>() {
+            @Override
+            public int compare(Entry<Account, Integer> o1, Entry<Account, Integer> o2) {
+                return o1.getValue() - o2.getValue();
+            }
+        }).greatestOf(reviewersApproved.entrySet(), reviewersApproved.size());
+        return approvalAccounts;
     }
 
     /**
@@ -259,20 +270,31 @@ public class ReviewAssistant implements Runnable {
     }
 
     /**
-     * Gets the amount of open changes for an email.
+     * Insert description here TODO -> Gustav
      *
-     * @param accountId the account ID to check open changes for
-     * @return the amount of open changes
+     * @param list
+     * @return
      */
-    private int getOpenChanges(int accountId) {
-        int open = 0;
-        try {
-            List<ChangeInfo> infoList = gApi.changes().query("status:open reviewer:" + accountId).get();
-            open = infoList.size();
-        } catch (RestApiException e) {
-            log.error(e.getMessage(), e);
+    private List sortByOpenChanges(List<Entry<Account, Integer>> list) {
+        for (int i = 0; i < list.size(); i++) {
+            Account account = list.get(i).getKey();
+            try {
+                int openChanges = gApi.changes().query("status:open reviewer:" + account.getId().get()).get().size();
+                list.get(i).setValue(openChanges);
+            } catch (RestApiException e) {
+                log.error(e.getMessage(), e);
+            } catch (Exception e) {
+                log.error(e.getMessage(), e);
+            }
         }
-        return open;
+        Collections.sort(list, new Comparator<Entry<Account, Integer>>() {
+            @Override
+            public int compare(Entry<Account, Integer> o1, Entry<Account, Integer> o2) {
+                return o1.getValue() - o2.getValue();
+            }
+        });
+
+        return list;
     }
 
     @Override
@@ -290,7 +312,15 @@ public class ReviewAssistant implements Runnable {
             return;
         }
 
-        List<Entry<Account, Integer>> reviewers = new LinkedList<>();
+        boolean LOAD_BALANCING = true;
+
+        //TODO FETCH +2 list
+        //TODO Remove duplicates
+        //TODO Sort by open changes if load balance is true
+
+        List<Entry<Account, Integer>> mergeCandidates = getApprovalAccounts();
+
+        List<Entry<Account, Integer>> blameCandidates = new LinkedList<>();
         for (PatchListEntry entry : patchList.getPatches()) {
             /*
              * Only git blame at the moment. If other methods are used in the future,
@@ -301,20 +331,25 @@ public class ReviewAssistant implements Runnable {
                 BlameResult blameResult = calculateBlame(commit.getParent(0), entry);
                 if (blameResult != null) {
                     List<Edit> edits = entry.getEdits();
-                    reviewers.addAll(getReviewers(edits, blameResult));
-                    for (int i = 0; i < reviewers.size(); i++) {
-                        log.info("Candidate " + (i + 1) + ": " + reviewers.get(i).getKey().getPreferredEmail() +
-                                ", blame score: " + reviewers.get(i).getValue());
+                    blameCandidates.addAll(getReviewers(edits, blameResult));
+                    for (int i = 0; i < blameCandidates.size(); i++) {
+                        log.info("Candidate " + (i + 1) + ": " + blameCandidates.get(i).getKey().getPreferredEmail() +
+                                ", blame score: " + blameCandidates.get(i).getValue());
                     }
                 } else {
                     log.error("calculateBlame returned null for commit {}", commit);
                 }
             }
         }
+        if(LOAD_BALANCING) {
+            mergeCandidates = sortByOpenChanges(mergeCandidates);
+            blameCandidates = sortByOpenChanges(blameCandidates);
+        }
+
         //bool below should be moved into addReviewers
         realUser = true;
-        addReviewers(change, reviewers);
+        addReviewers(change, blameCandidates);
         realUser = false;
-        List<Integer> approvedAccounts = getApprovalAccounts();
+
     }
 }
