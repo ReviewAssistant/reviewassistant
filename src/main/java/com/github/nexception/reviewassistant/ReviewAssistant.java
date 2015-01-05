@@ -2,8 +2,8 @@ package com.github.nexception.reviewassistant;
 
 import com.github.nexception.reviewassistant.models.Calculation;
 import com.google.common.collect.Ordering;
-import com.google.gerrit.extensions.api.changes.ChangeApi;
 import com.google.gerrit.extensions.api.GerritApi;
+import com.google.gerrit.extensions.api.changes.ChangeApi;
 import com.google.gerrit.extensions.common.ChangeInfo;
 import com.google.gerrit.extensions.common.ListChangesOption;
 import com.google.gerrit.extensions.restapi.AuthException;
@@ -34,8 +34,10 @@ import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.revwalk.RevCommit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -259,20 +261,31 @@ public class ReviewAssistant implements Runnable {
     }
 
     /**
-     * Gets the amount of open changes for an email.
+     * Insert description here TODO -> Gustav
      *
-     * @param accountId the account ID to check open changes for
-     * @return the amount of open changes
+     * @param list
+     * @return
      */
-    private int getOpenChanges(int accountId) {
-        int open = 0;
-        try {
-            List<ChangeInfo> infoList = gApi.changes().query("status:open reviewer:" + accountId).get();
-            open = infoList.size();
-        } catch (RestApiException e) {
-            log.error(e.getMessage(), e);
+    private List getOpenChanges(List<Entry<Account, Integer>> list) {
+        for (int i = 0; i < list.size(); i++) {
+            Account account = list.get(i).getKey();
+            try {
+                int openChanges = gApi.changes().query("status:open reviewer:" + account.getId().get()).get().size();
+                list.get(i).setValue(openChanges);
+            } catch (RestApiException e) {
+                log.error(e.getMessage(), e);
+            } catch (Exception e) {
+                log.error(e.getMessage(), e);
+            }
         }
-        return open;
+        Collections.sort(list, new Comparator<Entry<Account, Integer>>() {
+            @Override
+            public int compare(Entry<Account, Integer> o1, Entry<Account, Integer> o2) {
+                return o1.getValue() - o2.getValue();
+            }
+        });
+
+        return list;
     }
 
     @Override
@@ -311,6 +324,12 @@ public class ReviewAssistant implements Runnable {
                 }
             }
         }
+
+        //TODO FETCH +2 list
+        //TODO Remove duplicates
+        //TODO Sort by open changes if load balance is true
+
+
         //bool below should be moved into addReviewers
         realUser = true;
         addReviewers(change, reviewers);
