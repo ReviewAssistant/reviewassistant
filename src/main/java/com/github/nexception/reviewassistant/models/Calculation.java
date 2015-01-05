@@ -9,7 +9,6 @@ public class Calculation {
     public int totalReviewTime;
     public int hours;
     public int minutes;
-    public int sessionTime;
     public int sessions;
 
     public Calculation() {
@@ -17,7 +16,6 @@ public class Calculation {
         this.totalReviewTime = 0;
         this.hours = 0;
         this.minutes = 0;
-        this.sessionTime = 0;
         this.sessions = 0;
     }
 }

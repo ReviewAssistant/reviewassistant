@@ -7,6 +7,7 @@ import com.google.gerrit.reviewdb.client.Project;
 import com.google.gerrit.reviewdb.server.ReviewDb;
 import com.google.gerrit.server.CurrentUser;
 import com.google.gerrit.server.IdentifiedUser;
+import com.google.gerrit.server.PluginUser;
 import com.google.gerrit.server.events.ChangeEvent;
 import com.google.gerrit.server.events.PatchSetCreatedEvent;
 import com.google.gerrit.server.git.GitRepositoryManager;
@@ -36,27 +37,27 @@ class ChangeEventListener implements ChangeListener {
 
     private static final Logger log = LoggerFactory.getLogger(ChangeEventListener.class);
     private final ReviewAssistant.Factory reviewAssistantFactory;
-    private Storage storage;
     private WorkQueue workQueue;
     private GitRepositoryManager repoManager;
     private SchemaFactory<ReviewDb> schemaFactory;
     private final ThreadLocalRequestContext tl;
-    private final IdentifiedUser.GenericFactory identifiedUserFactory;
     private ReviewDb db;
+    private final PluginUser pluginUser;
+    private final IdentifiedUser.GenericFactory identifiedUserFactory;
 
     @Inject
-    ChangeEventListener(final ReviewAssistant.Factory reviewAssistantFactory, final Storage storage,
+    ChangeEventListener(final ReviewAssistant.Factory reviewAssistantFactory,
                         final WorkQueue workQueue, final GitRepositoryManager repoManager,
                         final SchemaFactory<ReviewDb> schemaFactory,
-                        final IdentifiedUser.GenericFactory identifiedUserFactory,
-                        final ThreadLocalRequestContext tl) {
-        this.storage = storage;
+                        final ThreadLocalRequestContext tl, final PluginUser pluginUser,
+                        final IdentifiedUser.GenericFactory identifiedUserFactory) {
         this.workQueue = workQueue;
         this.reviewAssistantFactory = reviewAssistantFactory;
         this.repoManager = repoManager;
         this.schemaFactory = schemaFactory;
-        this.identifiedUserFactory = identifiedUserFactory;
         this.tl = tl;
+        this.pluginUser = pluginUser;
+        this.identifiedUserFactory = identifiedUserFactory;
     }
 
     @Override
@@ -67,11 +68,7 @@ class ChangeEventListener implements ChangeListener {
         PatchSetCreatedEvent event = (PatchSetCreatedEvent) changeEvent;
         log.info("Received new commit: " + event.patchSet.revision);
 
-        //TODO: Move this to the servlet.
-        storage.storeCalculation(ReviewAssistant.calculate(event));
-
         Project.NameKey projectName = new Project.NameKey(event.change.project);
-
         Repository repo;
         try {
             repo = repoManager.openRepository(projectName);
@@ -115,7 +112,11 @@ class ChangeEventListener implements ChangeListener {
 
                             @Override
                             public CurrentUser getCurrentUser() {
-                                return identifiedUserFactory.create(change.getOwner());
+                                if(!ReviewAssistant.realUser) {
+                                    return pluginUser;
+                                } else {
+                                    return identifiedUserFactory.create(change.getOwner());
+                                }
                             }
 
                             @Override
