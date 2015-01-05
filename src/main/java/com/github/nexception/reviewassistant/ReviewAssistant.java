@@ -147,7 +147,6 @@ public class ReviewAssistant implements Runnable {
      *
      * @return a list of emails of users with +2 rights
      */
-
     private List<Entry<Account, Integer>> getApprovalAccounts() {
         Map<Account, Integer> reviewersApproved = new HashMap<>();
         try {
@@ -155,8 +154,10 @@ public class ReviewAssistant implements Runnable {
             for (ChangeInfo info : infoList) {
                 Account account = accountCache.get(new Account.Id(info.labels.get("Code-Review").approved._accountId)).getAccount();
                 if (reviewersApproved.containsKey(account)) {
+                    log.info(account.getPreferredEmail() + " has merge rights. Several occurrences.");
                     reviewersApproved.put(account, reviewersApproved.get(account) + 1);
                 } else {
+                    log.info(account.getPreferredEmail() + " has merge rights.");
                     reviewersApproved.put(account, 1);
                 }
             }
