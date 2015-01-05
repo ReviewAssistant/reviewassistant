@@ -14,7 +14,7 @@ public class Module extends FactoryModule {
     protected void configure() {
         DynamicSet.bind(binder(), ChangeListener.class).to(ChangeEventListener.class);
         bind(Storage.class).to(SimpleStorage.class);
-       // factory(GerritReviewAssistant.Factory.class);
+        factory(ReviewAssistant.Factory.class);
 
         install(new RestApiModule() {
             @Override
