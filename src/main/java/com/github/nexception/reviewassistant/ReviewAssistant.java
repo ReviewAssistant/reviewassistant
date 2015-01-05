@@ -150,7 +150,7 @@ public class ReviewAssistant implements Runnable {
     private List<Entry<Account, Integer>> getApprovalAccounts() {
         Map<Account, Integer> reviewersApproved = new HashMap<>();
         try {
-            List<ChangeInfo> infoList = gApi.changes().query("status:merged -age:8weeks label:Code-Review=2 project:" + projectName.toString()).withOptions(ListChangesOption.LABELS, ListChangesOption.DETAILED_ACCOUNTS).get();
+            List<ChangeInfo> infoList = gApi.changes().query("status:merged -age:1weeks label:Code-Review=2 project:" + projectName.toString()).withOptions(ListChangesOption.LABELS, ListChangesOption.DETAILED_ACCOUNTS).get();
             for (ChangeInfo info : infoList) {
                 log.info(info.labels.get("Code-Review").approved.username);
                 Account account = accountCache.getByUsername(info.labels.get("Code-Review").approved.username).getAccount();
@@ -165,13 +165,20 @@ public class ReviewAssistant implements Runnable {
         } catch (RestApiException e) {
             log.error(e.getMessage(), e);
         }
-        List<Entry<Account, Integer>> approvalAccounts = Ordering.from(new Comparator<Entry<Account, Integer>>() {
-            @Override
-            public int compare(Entry<Account, Integer> o1, Entry<Account, Integer> o2) {
-                return o1.getValue() - o2.getValue();
-            }
-        }).greatestOf(reviewersApproved.entrySet(), reviewersApproved.size());
-        return approvalAccounts;
+
+        try {
+            List<Entry<Account, Integer>> approvalAccounts = Ordering.from(new Comparator<Entry<Account, Integer>>() {
+                @Override
+                public int compare(Entry<Account, Integer> o1, Entry<Account, Integer> o2) {
+                    return o1.getValue() - o2.getValue();
+                }
+            }).greatestOf(reviewersApproved.entrySet(), reviewersApproved.size());
+            return approvalAccounts;
+        } catch (Exception e) {
+            log.error(e.getMessage(), e);
+        }
+        //TODO: Return empty list
+        return null;
     }
 
     /**
@@ -207,24 +214,28 @@ public class ReviewAssistant implements Runnable {
      */
     private List<Entry<Account, Integer>> getReviewers(List<Edit> edits, BlameResult blameResult) {
         Map<Account, Integer> blameData = new HashMap<>();
-        for (Edit edit : edits) {
-            for (int i = edit.getBeginA(); i < edit.getEndA(); i++) {
-                RevCommit commit = blameResult.getSourceCommit(i);
-                Set<Account.Id> idSet = emailCache.get(commit.getAuthorIdent().getEmailAddress());
-                for (Account.Id id : idSet) {
-                    Account account = accountCache.get(id).getAccount();
-                    // Check if account is active and not owner of change
-                    if (account.isActive() && !change.getOwner().equals(account.getId())) {
-                        Integer count = blameData.get(account);
-                        if (count == null) {
-                            count = 1;
-                        } else {
-                            count = count.intValue() + 1;
+        try {
+            for (Edit edit : edits) {
+                for (int i = edit.getBeginA(); i < edit.getEndA(); i++) {
+                    RevCommit commit = blameResult.getSourceCommit(i);
+                    Set<Account.Id> idSet = emailCache.get(commit.getAuthorIdent().getEmailAddress());
+                    for (Account.Id id : idSet) {
+                        Account account = accountCache.get(id).getAccount();
+                        // Check if account is active and not owner of change
+                        if (account.isActive() && !change.getOwner().equals(account.getId())) {
+                            Integer count = blameData.get(account);
+                            if (count == null) {
+                                count = 1;
+                            } else {
+                                count = count.intValue() + 1;
+                            }
+                            blameData.put(account, count);
                         }
-                        blameData.put(account, count);
                     }
                 }
             }
+        } catch (Exception e) {
+            log.error(e.getMessage(), e);
         }
         try {
             //TODO: Move this to main module
