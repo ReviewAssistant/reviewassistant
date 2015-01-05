@@ -152,7 +152,7 @@ public class ReviewAssistant implements Runnable {
         try {
             List<ChangeInfo> infoList = gApi.changes().query("status:merged -age:8weeks label:Code-Review=2 project:" + projectName.toString()).withOption(ListChangesOption.LABELS).get();
             for (ChangeInfo info : infoList) {
-                Account account = accountCache.get(new Account.Id(info.labels.get("Code-Review").approved._accountId)).getAccount();
+                Account account = accountCache.getByUsername(info.labels.get("Code-Review").approved.username).getAccount();
                 if (reviewersApproved.containsKey(account)) {
                     log.info(account.getPreferredEmail() + " has merge rights. Several occurrences.");
                     reviewersApproved.put(account, reviewersApproved.get(account) + 1);
