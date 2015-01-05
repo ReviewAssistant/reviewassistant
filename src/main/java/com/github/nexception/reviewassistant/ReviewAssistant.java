@@ -40,6 +40,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -261,14 +263,14 @@ public class ReviewAssistant implements Runnable {
      * Adds reviewers to the change.
      *
      * @param change the change for which reviewers should be added
-     * @param list   list of reviewers
+     * @param set set of reviewers
      */
-    private void addReviewers(Change change, List<Entry<Account, Integer>> list) {
+    private void addReviewers(Change change, Set<Account> set) {
         try {
             ChangeApi cApi = gApi.changes().id(change.getId().get());
-            for (Entry<Account, Integer> entry : list) {
-                cApi.addReviewer(entry.getKey().getId().toString());
-                log.info("{} was added to change {}", entry.getKey().getPreferredEmail(), change.getChangeId());
+            for (Account account : set) {
+                cApi.addReviewer(account.getId().toString());
+                log.info("{} was added to change {}", account.getPreferredEmail(), change.getChangeId());
             }
         } catch (ResourceNotFoundException e) {
             log.error(e.getMessage(), e);
@@ -284,13 +286,13 @@ public class ReviewAssistant implements Runnable {
     }
 
     /**
-     * Insert description here TODO -> Gustav
+     * Sorts a list by open changes in ascending order.
      *
-     * @param list
-     * @return
+     * @param list the list to be sorted
+     * @return a sorted list
      */
     private List sortByOpenChanges(List<Entry<Account, Integer>> list) {
-        //TODO: There is probably room for imprvement here
+        //TODO: There is probably room for improvement here
         ArrayList<Entry<Account, Integer>> modifiableList = new ArrayList<>(list);
         for (int i = 0; i < modifiableList.size(); i++) {
             Account account = modifiableList.get(i).getKey();
@@ -357,11 +359,18 @@ public class ReviewAssistant implements Runnable {
             blameCandidates = sortByOpenChanges(blameCandidates);
         }
 
+        Set<Account> finalSet = new HashSet<>();
+        Iterator<Entry<Account, Integer>> itr = blameCandidates.iterator();
+        finalSet.add(mergeCandidates.get(0).getKey());
+        while(finalSet.size() < 3 && itr.hasNext()) {
+            finalSet.add(itr.next().getKey());
+        }
+
         //TODO Remove duplicates
 
         //bool below should be moved into addReviewers
         realUser = true;
-        addReviewers(change, blameCandidates);
+        addReviewers(change, finalSet);
         realUser = false;
 
     }
