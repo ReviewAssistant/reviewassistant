@@ -101,7 +101,8 @@ public class ReviewAssistant implements Runnable {
         calculation.commitId = info.currentRevision;
         calculation.totalReviewTime = calculateReviewTime(info);
         calculation.hours = calculateReviewTime(info) / 60;
-        calculation.minutes = calculateReviewTime(info) % 60;
+        //test
+        calculation.minutes = calculateReviewTime(info) % 60; //test
         calculation.sessions = calculateReviewSessions(calculateReviewTime(info));
 
         return calculation;
@@ -127,6 +128,7 @@ public class ReviewAssistant implements Runnable {
         return minutes;
     }
 
+    //test
     /**
      * Returns the recommended amount of review sessions for a review.
      * Divides the total amount of review time up in 60 minute sessions.
@@ -139,7 +141,7 @@ public class ReviewAssistant implements Runnable {
         if (sessions < 1) {
             sessions = 1;
         }
-        return sessions;
+        return sessions; // test
     }
 
     /**
@@ -167,8 +169,10 @@ public class ReviewAssistant implements Runnable {
             log.error(e.getMessage(), e);
         }
 
+        //test
+
         try {
-            List<Entry<Account, Integer>> approvalAccounts = Ordering.from(new Comparator<Entry<Account, Integer>>() {
+            List<Entry<Account, Integer>> approvalAccounts = Ordering.from(new Comparator<Entry<Account, Integer>>() { // test
                 @Override
                 public int compare(Entry<Account, Integer> o1, Entry<Account, Integer> o2) {
                     return o1.getValue() - o2.getValue(); // for testing
@@ -227,6 +231,7 @@ public class ReviewAssistant implements Runnable {
                             Integer count = blameData.get(account);
                             if (count == null) {
                                 count = 1;
+                                // another test thing
                             } else {
                                 count = count.intValue() + 1;
                             }
@@ -255,7 +260,7 @@ public class ReviewAssistant implements Runnable {
             log.error("Could not find project {}", projectName.get());
             return null;
         }
-    }
+    } //some more testing
 
     /**
      * Adds reviewers to the change.
