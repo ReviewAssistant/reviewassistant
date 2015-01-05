@@ -153,7 +153,9 @@ public class ReviewAssistant implements Runnable {
         Map<Account, Integer> reviewersApproved = new HashMap<>();
         try {
             //TODO: Move limit to config
-            List<ChangeInfo> infoList = gApi.changes().query("status:merged -age:8weeks limit:10 label:Code-Review=2 project:" + projectName.toString()).withOptions(ListChangesOption.LABELS, ListChangesOption.DETAILED_ACCOUNTS).get();
+            List<ChangeInfo> infoList = gApi.changes().query("status:merged -owner:" + change.getOwner().get() +
+                    " -age:8weeks limit:10 label:Code-Review=2 project:" +
+                    projectName.toString()).withOptions(ListChangesOption.LABELS, ListChangesOption.DETAILED_ACCOUNTS).get();
             for (ChangeInfo info : infoList) {
                 log.info(info.labels.get("Code-Review").approved.username);
                 Account account = accountCache.getByUsername(info.labels.get("Code-Review").approved.username).getAccount();
