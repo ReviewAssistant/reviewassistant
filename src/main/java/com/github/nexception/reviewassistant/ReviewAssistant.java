@@ -263,22 +263,12 @@ public class ReviewAssistant implements Runnable {
      * @param change the change for which reviewers should be added
      * @param list   list of reviewers
      */
-    private void addReviewers(Change change, List<Entry<Account, Integer>> list) {
-        try {
             ChangeApi cApi = gApi.changes().id(change.getId().get());
-            for (Entry<Account, Integer> entry : list) {
                 cApi.addReviewer(entry.getKey().getId().toString());
                 log.info("{} was added to change {}", entry.getKey().getPreferredEmail(), change.getChangeId());
-            }
         } catch (ResourceNotFoundException e) {
             log.error(e.getMessage(), e);
         } catch (BadRequestException e) {
-            log.error(e.getMessage(), e);
-        } catch (UnprocessableEntityException e) {
-            log.error(e.getMessage(), e);
-        } catch (AuthException e) {
-            log.error(e.getMessage(), e);
-        } catch (RestApiException e) {
             log.error(e.getMessage(), e);
         }
     }
