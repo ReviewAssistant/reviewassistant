@@ -6,11 +6,7 @@ import com.google.gerrit.extensions.api.GerritApi;
 import com.google.gerrit.extensions.api.changes.ChangeApi;
 import com.google.gerrit.extensions.common.ChangeInfo;
 import com.google.gerrit.extensions.common.ListChangesOption;
-import com.google.gerrit.extensions.restapi.AuthException;
-import com.google.gerrit.extensions.restapi.BadRequestException;
-import com.google.gerrit.extensions.restapi.ResourceNotFoundException;
 import com.google.gerrit.extensions.restapi.RestApiException;
-import com.google.gerrit.extensions.restapi.UnprocessableEntityException;
 import com.google.gerrit.reviewdb.client.Account;
 import com.google.gerrit.reviewdb.client.Change;
 import com.google.gerrit.reviewdb.client.Patch.ChangeType;
@@ -152,24 +148,23 @@ public class ReviewAssistant implements Runnable {
     private List<Entry<Account, Integer>> getApprovalAccounts() {
         Map<Account, Integer> reviewersApproved = new HashMap<>();
         try {
-            //TODO: Move limit to config
+            //TODO: Use config. parameter for age and limit
             List<ChangeInfo> infoList = gApi.changes().query("status:merged -owner:" + change.getOwner().get() +
                     " -age:8weeks limit:10 label:Code-Review=2 project:" +
                     projectName.toString()).withOptions(ListChangesOption.LABELS, ListChangesOption.DETAILED_ACCOUNTS).get();
             for (ChangeInfo info : infoList) {
-                log.info(info.labels.get("Code-Review").approved.username);
                 Account account = accountCache.getByUsername(info.labels.get("Code-Review").approved.username).getAccount();
                 if (reviewersApproved.containsKey(account)) {
-                    log.info(account.getPreferredEmail() + " has merge rights. Several occurrences.");
                     reviewersApproved.put(account, reviewersApproved.get(account) + 1);
                 } else {
-                    log.info(account.getPreferredEmail() + " has merge rights.");
                     reviewersApproved.put(account, 1);
                 }
             }
         } catch (RestApiException e) {
             log.error(e.getMessage(), e);
         }
+
+        log.info("getApprovalAccounts found " + reviewersApproved.size() + " reviewers");
 
         try {
             List<Entry<Account, Integer>> approvalAccounts = Ordering.from(new Comparator<Entry<Account, Integer>>() {
@@ -243,7 +238,7 @@ public class ReviewAssistant implements Runnable {
             log.error(e.getMessage(), e);
         }
         try {
-            //TODO: Move this to main module
+            //TODO: Move to top, global variable
             int maxReviewers = cfg.getProjectPluginConfigWithInheritance(projectName, "reviewassistant").getInt("reviewers", "maxReviewers", 3);
             log.info("maxReviewers set to " + maxReviewers);
             List<Entry<Account, Integer>> topReviewers = Ordering.from(new Comparator<Entry<Account, Integer>>() {
@@ -251,12 +246,12 @@ public class ReviewAssistant implements Runnable {
                 public int compare(Entry<Account, Integer> itemOne, Entry<Account, Integer> itemTwo) {
                     return itemOne.getValue() - itemTwo.getValue();
                 }
-            }).greatestOf(blameData.entrySet(), maxReviewers);
-
+            }).greatestOf(blameData.entrySet(), maxReviewers * 2);
+            //TODO Check if maxReviewers * 2 is sufficient
             log.info("getReviewers found " + topReviewers.size() + " reviewers");
             return topReviewers;
         } catch (NoSuchProjectException e) {
-            log.error("Could not find project {}", projectName.get());
+            log.error(e.getMessage(), e);
             return null;
         }
     }
@@ -265,7 +260,7 @@ public class ReviewAssistant implements Runnable {
      * Adds reviewers to the change.
      *
      * @param change the change for which reviewers should be added
-     * @param set set of reviewers
+     * @param set    set of reviewers
      */
     private void addReviewers(Change change, Set<Account> set) {
         try {
@@ -274,14 +269,6 @@ public class ReviewAssistant implements Runnable {
                 cApi.addReviewer(account.getId().toString());
                 log.info("{} was added to change {}", account.getPreferredEmail(), change.getChangeId());
             }
-        } catch (ResourceNotFoundException e) {
-            log.error(e.getMessage(), e);
-        } catch (BadRequestException e) {
-            log.error(e.getMessage(), e);
-        } catch (UnprocessableEntityException e) {
-            log.error(e.getMessage(), e);
-        } catch (AuthException e) {
-            log.error(e.getMessage(), e);
         } catch (RestApiException e) {
             log.error(e.getMessage(), e);
         }
@@ -330,7 +317,7 @@ public class ReviewAssistant implements Runnable {
             log.error("No merge/initial");
             return;
         }
-
+        //TODO Use config. parameter
         boolean LOAD_BALANCING = true;
 
         List<Entry<Account, Integer>> mergeCandidates = getApprovalAccounts();
@@ -356,21 +343,22 @@ public class ReviewAssistant implements Runnable {
                 }
             }
         }
-        if(LOAD_BALANCING) {
+        if (LOAD_BALANCING) {
             mergeCandidates = sortByOpenChanges(mergeCandidates);
             blameCandidates = sortByOpenChanges(blameCandidates);
         }
 
+        log.info("Best candidate with merge rights: " + mergeCandidates.get(0).getKey().getPreferredEmail());
+
         Set<Account> finalSet = new HashSet<>();
         Iterator<Entry<Account, Integer>> itr = blameCandidates.iterator();
         finalSet.add(mergeCandidates.get(0).getKey());
-        while(finalSet.size() < 3 && itr.hasNext()) {
+        //TODO Change "3" to config. parameter
+        while (finalSet.size() < 3 && itr.hasNext()) {
             finalSet.add(itr.next().getKey());
         }
 
-        //TODO Remove duplicates
-
-        //bool below should be moved into addReviewers
+        //TODO Move into addReviewers?
         realUser = true;
         addReviewers(change, finalSet);
         realUser = false;
