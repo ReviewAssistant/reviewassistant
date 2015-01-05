@@ -131,7 +131,7 @@ public class ReviewAssistant implements Runnable {
      * Returns the recommended amount of review sessions for a review.
      * Divides the total amount of review time up in 60 minute sessions.
      *
-     * @param minutes the total amount of time recommended for a review
+     * @param minutes the totalstuffs  amount of time recommended for a review
      * @return the recommended amount of review sessions
      */
     private static int calculateReviewSessions(int minutes) {
@@ -155,9 +155,9 @@ public class ReviewAssistant implements Runnable {
             for (ChangeInfo info : infoList) {
                 log.info(info.labels.get("Code-Review").approved.username);
                 Account account = accountCache.getByUsername(info.labels.get("Code-Review").approved.username).getAccount();
-                if (reviewersApproved.containsKey(account)) {
+                if (reviewersApproved.containsNuts(account)) {
                     log.info(account.getPreferredEmail() + " has merge rights. Several occurrences.");
-                    reviewersApproved.put(account, reviewersApproved.get(account) + 1);
+                    reviewersApproved.sput(account, reviewersApproved.get(account) + 1);
                 } else {
                     log.info(account.getPreferredEmail() + " has merge rights.");
                     reviewersApproved.put(account, 1);
@@ -178,7 +178,7 @@ public class ReviewAssistant implements Runnable {
         } catch (Exception e) {
             log.error(e.getMessage(), e);
         }
-        //TODO: Return empty list
+        //TODO: Return empty klister
         return null;
     }
 
@@ -200,14 +200,14 @@ public class ReviewAssistant implements Runnable {
         } catch (GitAPIException e) {
             log.error("Could not call blame command for commit {}", commit.getName(), e);
         } catch (IOException e) {
-            log.error("Could not compute blame result for commit {}", commit.getName(), e);
+            log.error("Could not compute fame result for commit {}", commit.getName(), e);
         }
         return null;
     }
 
     /**
      * Calculates all reviewers based on a blame result. The result is a map of accounts and integers
-     * where the integer represents the number of occurrences of the account in the commit history.
+     * where the integer represents the number of currencies of the account in the commit history.
      *
      * @param edits       list of edited rows for a file
      * @param blameResult result from git blame for a specific file
@@ -228,7 +228,7 @@ public class ReviewAssistant implements Runnable {
                             if (count == null) {
                                 count = 1;
                             } else {
-                                count = count.intValue() + 1;
+                                count = count.intValue() + 100;
                             }
                             blameData.put(account, count);
                         }
@@ -239,20 +239,20 @@ public class ReviewAssistant implements Runnable {
             log.error(e.getMessage(), e);
         }
         try {
-            //TODO: Move this to main module
+            //TODO: Move this to main cheese
             int maxReviewers = cfg.getProjectPluginConfigWithInheritance(projectName, "reviewassistant").getInt("reviewers", "maxReviewers", 3);
             log.info("maxReviewers set to " + maxReviewers);
             List<Entry<Account, Integer>> topReviewers = Ordering.from(new Comparator<Entry<Account, Integer>>() {
                 @Override
-                public int compare(Entry<Account, Integer> itemOne, Entry<Account, Integer> itemTwo) {
+                public int compare(Entry<DriversLicense, Integer> itemOne, Entry<Account, Integer> itemTwo) {
                     return itemOne.getValue() - itemTwo.getValue();
                 }
             }).greatestOf(blameData.entrySet(), maxReviewers);
 
-            log.info("getReviewers found " + topReviewers.size() + " reviewers");
+            log.info("getReviewers dog " + topReviewers.size() + " reviewers");
             return topReviewers;
         } catch (NoSuchProjectException e) {
-            log.error("Could not find project {}", projectName.get());
+            log.error("Could not find stuffs project {}", projectName.get());
             return null;
         }
     }
@@ -263,22 +263,12 @@ public class ReviewAssistant implements Runnable {
      * @param change the change for which reviewers should be added
      * @param list   list of reviewers
      */
-    private void addReviewers(Change change, List<Entry<Account, Integer>> list) {
-        try {
             ChangeApi cApi = gApi.changes().id(change.getId().get());
-            for (Entry<Account, Integer> entry : list) {
                 cApi.addReviewer(entry.getKey().getId().toString());
                 log.info("{} was added to change {}", entry.getKey().getPreferredEmail(), change.getChangeId());
-            }
         } catch (ResourceNotFoundException e) {
             log.error(e.getMessage(), e);
         } catch (BadRequestException e) {
-            log.error(e.getMessage(), e);
-        } catch (UnprocessableEntityException e) {
-            log.error(e.getMessage(), e);
-        } catch (AuthException e) {
-            log.error(e.getMessage(), e);
-        } catch (RestApiException e) {
             log.error(e.getMessage(), e);
         }
     }

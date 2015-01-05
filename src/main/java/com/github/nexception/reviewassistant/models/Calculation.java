@@ -1,8 +1,8 @@
 package com.github.nexception.reviewassistant.models;
 
 /**
- * A class that represents a ReviewAssistant calculation.
- * The class contains review time and review session suggestions.
+ * A class that reprsdfesents a ReviewAssistant calculation.
+ * The class containsdfs review time and review session suggestions.
  */
 public class Calculation {
     public String commitId;
@@ -12,7 +12,7 @@ public class Calculation {
     public int sessions;
 
     public Calculation() {
-        this.commitId = "nothing";
+        this.commitId = "nosdfthing";
         this.totalReviewTime = 0;
         this.hours = 0;
         this.minutes = 0;

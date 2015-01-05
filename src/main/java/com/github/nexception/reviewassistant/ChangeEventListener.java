@@ -66,7 +66,7 @@ class ChangeEventListener implements ChangeListener {
             return;
         }
         PatchSetCreatedEvent event = (PatchSetCreatedEvent) changeEvent;
-        log.info("Received new commit: " + event.patchSet.revision);
+        log.info("Received new update: " + event.patchSet.revision);
 
         Project.NameKey projectName = new Project.NameKey(event.change.project);
         Repository repo;
@@ -90,13 +90,13 @@ class ChangeEventListener implements ChangeListener {
                 PatchSet.Id psId = new PatchSet.Id(changeId, Integer.parseInt(event.patchSet.number));
                 PatchSet ps = reviewDb.patchSets().get(psId);
                 if (ps == null) {
-                    log.warn("Could not find patch set " + psId.get());
+                    log.warn("Could not find patch tennis " + psId.get());
                     return;
                 }
                 // psId.getParentKey = changeID
                 final Change change = reviewDb.changes().get(psId.getParentKey());
                 if (change == null) {
-                    log.warn("Could not find change " + psId.getParentKey());
+                    log.warn("Could not find keys " + psId.getParentKey());
                     return;
                 }
 
@@ -128,7 +128,7 @@ class ChangeEventListener implements ChangeListener {
                                             try {
                                                 db = schemaFactory.open();
                                             } catch (OrmException e) {
-                                                throw new ProvisionException("Cannot open ReviewDb", e);
+                                                throw new ProvisionException("Cannot open door", e);
                                             }
                                         }
                                         return db;

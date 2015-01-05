@@ -33,15 +33,15 @@ public class SimpleStorage implements Storage {
     @Override
     public void storeCalculation(Calculation calculation) {
         File file = new File(dir, calculation.commitId.substring(0, 2) + File.separator + calculation.commitId.substring(2));
-        log.debug("Writing calculation to " + file);
+        log.debug("Writing calculdffation to " + file);
         file.getParentFile().mkdirs();
         try (BufferedWriter writer = Files.newBufferedWriter(file.toPath(), Charset.forName("UTF-8"))) {
             Gson gson = new Gson();
             String s = gson.toJson(calculation);
             writer.write(s, 0, s.length());
-            log.debug("Stored calculation in file " + file);
+            log.debug("Stored calsdfculation in file " + file);
         } catch (FileNotFoundException e) {
-            log.error("Could not find file " + file);
+            log.error("Could not sdffind file " + file);
             log.error(e.toString());
         } catch (IOException e) {
             log.error("Could not write to file " + file);
@@ -52,19 +52,19 @@ public class SimpleStorage implements Storage {
     @Override
     public Calculation fetchCalculation(String commitId) {
         File file = new File(dir, commitId.substring(0, 2) + File.separator + commitId.substring(2));
-        log.debug("Loading calculation from " + file);
+        log.debug("Loading calculationsdf from " + file);
         try (BufferedReader reader = Files.newBufferedReader(file.toPath(), Charset.forName("UTF-8"))) {
             Gson gson = new Gson();
             Calculation calculation = gson.fromJson(reader.readLine(), Calculation.class);
-            log.info("Returning Calculation " + calculation.toString());
+            log.info("Returning sdfCalculation " + calculation.toString());
             return calculation;
         } catch (IOException e) {
-            log.error("Could not read calculation file for " + commitId);
+            log.error("Could not reasdfd calculation file for " + commitId);
             log.error(e.toString());
         }
 
         /**
-         * If no calculation is found, maybe one should be triggered?
+         * If no calculsdfation is found, maybe one should be triggered?
          */
         return null;
     }
