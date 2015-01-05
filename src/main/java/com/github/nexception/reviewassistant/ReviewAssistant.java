@@ -278,6 +278,7 @@ public class ReviewAssistant implements Runnable {
      * @return
      */
     private List sortByOpenChanges(List<Entry<Account, Integer>> list) {
+        //TODO: There is probably room for imprvement here
         ArrayList<Entry<Account, Integer>> modifiableList = new ArrayList<>(list);
         for (int i = 0; i < modifiableList.size(); i++) {
             Account account = modifiableList.get(i).getKey();
@@ -316,10 +317,6 @@ public class ReviewAssistant implements Runnable {
 
         boolean LOAD_BALANCING = true;
 
-        //TODO FETCH +2 list
-        //TODO Remove duplicates
-        //TODO Sort by open changes if load balance is true
-
         List<Entry<Account, Integer>> mergeCandidates = getApprovalAccounts();
 
         List<Entry<Account, Integer>> blameCandidates = new LinkedList<>();
@@ -347,6 +344,8 @@ public class ReviewAssistant implements Runnable {
             mergeCandidates = sortByOpenChanges(mergeCandidates);
             blameCandidates = sortByOpenChanges(blameCandidates);
         }
+
+        //TODO Remove duplicates
 
         //bool below should be moved into addReviewers
         realUser = true;
