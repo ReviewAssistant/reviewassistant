@@ -163,7 +163,7 @@ public class ReviewAssistant implements Runnable {
                     reviewersApproved.put(account, 1);
                 }
             }
-        } catch (RestApiException e) {
+        } catch (RestApiException e) { // for testing
             log.error(e.getMessage(), e);
         }
 
@@ -171,7 +171,7 @@ public class ReviewAssistant implements Runnable {
             List<Entry<Account, Integer>> approvalAccounts = Ordering.from(new Comparator<Entry<Account, Integer>>() {
                 @Override
                 public int compare(Entry<Account, Integer> o1, Entry<Account, Integer> o2) {
-                    return o1.getValue() - o2.getValue();
+                    return o1.getValue() - o2.getValue(); // for testing
                 }
             }).greatestOf(reviewersApproved.entrySet(), reviewersApproved.size());
             return approvalAccounts;
