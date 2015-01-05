@@ -10,7 +10,11 @@ performed to be as effective as possible. The review time suggestions are based 
 * Reviewers should not spend more than 60 minutes reviewing. If the review is expected to take longer, it is recommended
  to split the review into several sessions.
 
-ReviewAssistant is also capable of adding reviewers automatically, based on the git-blame on the changed files.
+ReviewAssistant is also capable of adding reviewers automatically, based on:
+
+* Git blame
+* Submit history - Users with merge rights.
+* Open changes - Users with more open changes are less likely to be chosen as reviewer.
 
 ## Credits
 
