@@ -36,6 +36,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -277,25 +278,25 @@ public class ReviewAssistant implements Runnable {
      * @return
      */
     private List sortByOpenChanges(List<Entry<Account, Integer>> list) {
-        for (int i = 0; i < list.size(); i++) {
-            Account account = list.get(i).getKey();
+        ArrayList<Entry<Account, Integer>> modifiableList = new ArrayList<>(list);
+        for (int i = 0; i < modifiableList.size(); i++) {
+            Account account = modifiableList.get(i).getKey();
             try {
                 int openChanges = gApi.changes().query("status:open reviewer:" + account.getId().get()).get().size();
-                list.get(i).setValue(openChanges);
+                modifiableList.get(i).setValue(openChanges);
+                Collections.sort(modifiableList, new Comparator<Entry<Account, Integer>>() {
+                    @Override
+                    public int compare(Entry<Account, Integer> o1, Entry<Account, Integer> o2) {
+                        return o1.getValue() - o2.getValue();
+                    }
+                });
             } catch (RestApiException e) {
                 log.error(e.getMessage(), e);
             } catch (Exception e) {
                 log.error(e.getMessage(), e);
             }
         }
-        Collections.sort(list, new Comparator<Entry<Account, Integer>>() {
-            @Override
-            public int compare(Entry<Account, Integer> o1, Entry<Account, Integer> o2) {
-                return o1.getValue() - o2.getValue();
-            }
-        });
-
-        return list;
+        return modifiableList;
     }
 
     @Override
