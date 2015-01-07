@@ -36,13 +36,14 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+
+enum AddReason { PLUS_TWO, EXPERIENCE }
 
 /**
  * A class for calculating recommended review time and
@@ -62,6 +63,10 @@ public class ReviewAssistant implements Runnable {
     private final Project.NameKey projectName;
     private final GerritApi gApi;
     public static boolean realUser = false;
+    private final int maxReviewers;
+    private final boolean loadBalancing;
+    private final int plusTwoAge;
+    private final int plusTwoLimit;
 
 
     public interface Factory {
@@ -86,6 +91,34 @@ public class ReviewAssistant implements Runnable {
         this.cfg = cfg;
         this.projectName = projectName;
         this.gApi = gApi;
+        int tmpMaxReviewers;
+        boolean tmpLoadBalancing;
+        int tmpPlusTwoAge;
+        int tmpPlusTwoLimit;
+        try {
+            tmpMaxReviewers =
+                cfg.getProjectPluginConfigWithInheritance(projectName, "reviewassistant")
+                    .getInt("reviewers", "maxReviewers", 3);
+            tmpLoadBalancing =
+                cfg.getProjectPluginConfigWithInheritance(projectName, "reviewassistant")
+                    .getBoolean("reviewers", "enableLoadBalancing", false);
+            tmpPlusTwoAge =
+                cfg.getProjectPluginConfigWithInheritance(projectName, "reviewassistant")
+                    .getInt("reviewers", "plusTwoAge", 8);
+            tmpPlusTwoLimit =
+                cfg.getProjectPluginConfigWithInheritance(projectName, "reviewassistant")
+                    .getInt("reviewers", "plusTwoLimit", 10);
+        } catch (NoSuchProjectException e) {
+            log.error(e.getMessage(), e);
+            tmpMaxReviewers = 3;
+            tmpLoadBalancing = false;
+            tmpPlusTwoAge = 8;
+            tmpPlusTwoLimit = 10;
+        }
+        this.maxReviewers = tmpMaxReviewers;
+        this.loadBalancing = tmpLoadBalancing;
+        this.plusTwoAge = tmpPlusTwoAge;
+        this.plusTwoLimit = tmpPlusTwoLimit;
     }
 
     /**
@@ -96,7 +129,7 @@ public class ReviewAssistant implements Runnable {
      * @return the Calculation object for a review
      */
     public static Calculation calculate(ChangeInfo info) {
-        log.info("Received event: " + info.currentRevision);    //Commit-ID
+        log.debug("Received event: " + info.currentRevision);    //Commit-ID
         Calculation calculation = new Calculation();
         calculation.commitId = info.currentRevision;
         calculation.totalReviewTime = calculateReviewTime(info);
@@ -150,10 +183,9 @@ public class ReviewAssistant implements Runnable {
     private List<Entry<Account, Integer>> getApprovalAccounts() {
         Map<Account, Integer> reviewersApproved = new HashMap<>();
         try {
-            //TODO: Use config. parameter for age and limit
             List<ChangeInfo> infoList =
                 gApi.changes().query("status:merged -owner:" + change.getOwner().get() +
-                    " -age:8weeks limit:10 label:Code-Review=2 project:" +
+                    " -age:" + plusTwoAge + "weeks limit:" + plusTwoLimit + " label:Code-Review=2 project:" +
                     projectName.toString())
                     .withOptions(ListChangesOption.LABELS, ListChangesOption.DETAILED_ACCOUNTS)
                     .get();
@@ -171,7 +203,7 @@ public class ReviewAssistant implements Runnable {
             log.error(e.getMessage(), e);
         }
 
-        log.info("getApprovalAccounts found " + reviewersApproved.size() + " reviewers");
+        log.debug("getApprovalAccounts found " + reviewersApproved.size() + " reviewers");
 
         try {
             List<Entry<Account, Integer>> approvalAccounts =
@@ -185,8 +217,7 @@ public class ReviewAssistant implements Runnable {
         } catch (Exception e) {
             log.error(e.getMessage(), e);
         }
-        //TODO: Return empty list
-        return null;
+        return new ArrayList<>();
     }
 
     /**
@@ -246,42 +277,44 @@ public class ReviewAssistant implements Runnable {
         } catch (Exception e) {
             log.error(e.getMessage(), e);
         }
-        try {
-            //TODO: Move to top, global variable
-            int maxReviewers =
-                cfg.getProjectPluginConfigWithInheritance(projectName, "reviewassistant")
-                    .getInt("reviewers", "maxReviewers", 3);
-            log.info("maxReviewers set to " + maxReviewers);
-            List<Entry<Account, Integer>> topReviewers =
-                Ordering.from(new Comparator<Entry<Account, Integer>>() {
-                    @Override
-                    public int compare(Entry<Account, Integer> itemOne,
-                        Entry<Account, Integer> itemTwo) {
-                        return itemOne.getValue() - itemTwo.getValue();
-                    }
-                }).greatestOf(blameData.entrySet(), maxReviewers * 2);
-            //TODO Check if maxReviewers * 2 is sufficient
-            log.info("getReviewers found " + topReviewers.size() + " reviewers");
-            return topReviewers;
-        } catch (NoSuchProjectException e) {
-            log.error(e.getMessage(), e);
-            return null;
-        }
+
+        List<Entry<Account, Integer>> topReviewers =
+            Ordering.from(new Comparator<Entry<Account, Integer>>() {
+                @Override
+                public int compare(Entry<Account, Integer> itemOne,
+                    Entry<Account, Integer> itemTwo) {
+                    return itemOne.getValue() - itemTwo.getValue();
+                }
+            }).greatestOf(blameData.entrySet(), maxReviewers * 2);
+        //TODO Check if maxReviewers * 2 is sufficient
+        log.debug("getReviewers found " + topReviewers.size() + " reviewers");
+        return topReviewers;
     }
 
     /**
      * Adds reviewers to the change.
      *
      * @param change the change for which reviewers should be added
-     * @param set    set of reviewers
+     * @param map map of reviewers and their reasons for being added
      */
-    private void addReviewers(Change change, Set<Account> set) {
+    private void addReviewers(Change change, Map<Account, AddReason> map) {
         try {
             ChangeApi cApi = gApi.changes().id(change.getId().get());
-            for (Account account : set) {
-                cApi.addReviewer(account.getId().toString());
-                log.info("{} was added to change {}", account.getPreferredEmail(),
-                    change.getChangeId());
+            for (Entry<Account, AddReason> entry : map.entrySet()) {
+                cApi.addReviewer(entry.getKey().getId().toString());
+                String reason;
+                switch(entry.getValue()) {
+                    case PLUS_TWO:
+                        reason = "+2";
+                        break;
+                    case EXPERIENCE:
+                        reason = "experience";
+                        break;
+                    default:
+                        reason = "unknown reason";
+                }
+                log.info("{} was added to change {} ({})", entry.getKey().getPreferredEmail(),
+                    change.getChangeId(), reason);
             }
         } catch (RestApiException e) {
             log.error(e.getMessage(), e);
@@ -321,6 +354,8 @@ public class ReviewAssistant implements Runnable {
 
     @Override
     public void run() {
+        log.info("CONFIG: maxReviewers: " + maxReviewers + ", enableLoadBalancing: " + loadBalancing +
+            ", plusTwoAge: " + plusTwoAge + ", plusTwoLimit: " + plusTwoLimit);
         PatchList patchList;
         try {
             patchList = patchListCache.get(change, ps);
@@ -333,8 +368,6 @@ public class ReviewAssistant implements Runnable {
             log.error("No merge/initial");
             return;
         }
-        //TODO Use config. parameter
-        boolean LOAD_BALANCING = true;
 
         List<Entry<Account, Integer>> mergeCandidates = getApprovalAccounts();
 
@@ -344,42 +377,37 @@ public class ReviewAssistant implements Runnable {
              * Only git blame at the moment. If other methods are used in the future,
              * other change types might be required.
              */
-            if (entry.getChangeType() == ChangeType.MODIFIED ||
-                entry.getChangeType() == ChangeType.DELETED) {
+            if (entry.getChangeType() == ChangeType.MODIFIED
+                || entry.getChangeType() == ChangeType.DELETED) {
                 BlameResult blameResult = calculateBlame(commit.getParent(0), entry);
                 if (blameResult != null) {
                     List<Edit> edits = entry.getEdits();
                     blameCandidates.addAll(getReviewers(edits, blameResult));
-                    for (int i = 0; i < blameCandidates.size(); i++) {
-                        //TODO Log added candidates instead
-                        log.info("Candidate " + (i + 1) + ": " + blameCandidates.get(i).getKey()
-                            .getPreferredEmail() +
-                            ", blame score: " + blameCandidates.get(i).getValue());
-                    }
                 } else {
                     log.error("calculateBlame returned null for commit {}", commit);
                 }
             }
         }
-        if (LOAD_BALANCING) {
+
+        if (loadBalancing) {
             mergeCandidates = sortByOpenChanges(mergeCandidates);
             blameCandidates = sortByOpenChanges(blameCandidates);
         }
 
-        log.info("Best candidate with merge rights: " + mergeCandidates.get(0).getKey()
-            .getPreferredEmail());
-
-        Set<Account> finalSet = new HashSet<>();
+        Map<Account, AddReason> finalMap = new HashMap<>();
         Iterator<Entry<Account, Integer>> itr = blameCandidates.iterator();
-        finalSet.add(mergeCandidates.get(0).getKey());
-        //TODO Change "3" to config. parameter
-        while (finalSet.size() < 3 && itr.hasNext()) {
-            finalSet.add(itr.next().getKey());
+        finalMap.put(mergeCandidates.get(0).getKey(), AddReason.PLUS_TWO);
+        while (finalMap.size() < maxReviewers && itr.hasNext()) {
+            Account account = itr.next().getKey();
+            if (!finalMap.containsKey(account)) {
+                finalMap.put(account, AddReason.EXPERIENCE);
+            }
         }
 
         //TODO Move into addReviewers?
         realUser = true;
-        addReviewers(change, finalSet);
+        //        addReviewers(change, finalSet);
+        addReviewers(change, finalMap);
         realUser = false;
 
     }
