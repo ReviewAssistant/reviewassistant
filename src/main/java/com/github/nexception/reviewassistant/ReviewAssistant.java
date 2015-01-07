@@ -184,8 +184,7 @@ public class ReviewAssistant implements Runnable {
         Map<Account, Integer> reviewersApproved = new HashMap<>();
         try {
             List<ChangeInfo> infoList =
-                gApi.changes().query("status:merged -owner:" + change.getOwner().get() +
-                    " -age:" + plusTwoAge + "weeks limit:" + plusTwoLimit + " label:Code-Review=2 project:" +
+                gApi.changes().query("status:merged -age:" + plusTwoAge + "weeks limit:" + plusTwoLimit + " -label:Code-Review," + change.getOwner().get() + " label:Code-Review=2 project:" +
                     projectName.toString())
                     .withOptions(ListChangesOption.LABELS, ListChangesOption.DETAILED_ACCOUNTS)
                     .get();
@@ -233,7 +232,12 @@ public class ReviewAssistant implements Runnable {
         blameCommand.setFilePath(file.getNewName());
         try {
             BlameResult blameResult = blameCommand.call();
-            blameResult.computeAll();
+//            blameResult.computeAll();
+            int blameTimeOut = 100;
+            long startTime = System.currentTimeMillis();
+            log.info("Started blame at {}", startTime);
+            while(blameResult.computeNext() >= 0 && System.currentTimeMillis() - startTime < blameTimeOut) {}
+            log.info("Finished blame at {}", System.currentTimeMillis());
             return blameResult;
         } catch (GitAPIException e) {
             log.error("Could not call blame command for commit {}", commit.getName(), e);
