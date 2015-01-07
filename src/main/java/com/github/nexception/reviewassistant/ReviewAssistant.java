@@ -236,7 +236,12 @@ public class ReviewAssistant implements Runnable {
         blameCommand.setFilePath(file.getNewName());
         try {
             BlameResult blameResult = blameCommand.call();
-            blameResult.computeAll();
+//            blameResult.computeAll();
+            int blameTimeOut = 100;
+            long startTime = System.currentTimeMillis();
+            log.info("Started blame at {}", startTime);
+            while(blameResult.computeNext() >= 0 && System.currentTimeMillis() - startTime < blameTimeOut) {}
+            log.info("Finished blame at {}", System.currentTimeMillis());
             return blameResult;
         } catch (GitAPIException e) {
             log.error("Could not call blame command for commit {}", commit.getName(), e);
