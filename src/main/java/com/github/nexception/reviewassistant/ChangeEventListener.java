@@ -28,6 +28,7 @@ import org.eclipse.jgit.revwalk.RevCommit;
 import org.eclipse.jgit.revwalk.RevWalk;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import java.io.IOException;
 
 /**
@@ -37,20 +38,18 @@ class ChangeEventListener implements ChangeListener {
 
     private static final Logger log = LoggerFactory.getLogger(ChangeEventListener.class);
     private final ReviewAssistant.Factory reviewAssistantFactory;
+    private final ThreadLocalRequestContext tl;
+    private final PluginUser pluginUser;
+    private final IdentifiedUser.GenericFactory identifiedUserFactory;
     private WorkQueue workQueue;
     private GitRepositoryManager repoManager;
     private SchemaFactory<ReviewDb> schemaFactory;
-    private final ThreadLocalRequestContext tl;
     private ReviewDb db;
-    private final PluginUser pluginUser;
-    private final IdentifiedUser.GenericFactory identifiedUserFactory;
 
-    @Inject
-    ChangeEventListener(final ReviewAssistant.Factory reviewAssistantFactory,
-                        final WorkQueue workQueue, final GitRepositoryManager repoManager,
-                        final SchemaFactory<ReviewDb> schemaFactory,
-                        final ThreadLocalRequestContext tl, final PluginUser pluginUser,
-                        final IdentifiedUser.GenericFactory identifiedUserFactory) {
+    @Inject ChangeEventListener(final ReviewAssistant.Factory reviewAssistantFactory,
+        final WorkQueue workQueue, final GitRepositoryManager repoManager,
+        final SchemaFactory<ReviewDb> schemaFactory, final ThreadLocalRequestContext tl,
+        final PluginUser pluginUser, final IdentifiedUser.GenericFactory identifiedUserFactory) {
         this.workQueue = workQueue;
         this.reviewAssistantFactory = reviewAssistantFactory;
         this.repoManager = repoManager;
@@ -60,8 +59,7 @@ class ChangeEventListener implements ChangeListener {
         this.identifiedUserFactory = identifiedUserFactory;
     }
 
-    @Override
-    public void onChangeEvent(ChangeEvent changeEvent) {
+    @Override public void onChangeEvent(ChangeEvent changeEvent) {
         if (!(changeEvent instanceof PatchSetCreatedEvent)) {
             return;
         }
@@ -87,7 +85,8 @@ class ChangeEventListener implements ChangeListener {
             reviewDb = schemaFactory.open();
             try {
                 Change.Id changeId = new Change.Id(Integer.parseInt(event.change.number));
-                PatchSet.Id psId = new PatchSet.Id(changeId, Integer.parseInt(event.patchSet.number));
+                PatchSet.Id psId =
+                    new PatchSet.Id(changeId, Integer.parseInt(event.patchSet.number));
                 PatchSet ps = reviewDb.patchSets().get(psId);
                 if (ps == null) {
                     log.warn("Could not find patch set " + psId.get());
@@ -104,31 +103,29 @@ class ChangeEventListener implements ChangeListener {
 
                 //TODO: Make the create method take only project name, change and patchset.
                 //TODO: (The rest should be moved into ReviewAssistant)
-                final Runnable task = reviewAssistantFactory.create(commit, change, ps, repo, projectName);
+                final Runnable task =
+                    reviewAssistantFactory.create(commit, change, ps, repo, projectName);
                 workQueue.getDefaultQueue().submit(new Runnable() {
-                    @Override
-                    public void run() {
+                    @Override public void run() {
                         RequestContext old = tl.setContext(new RequestContext() {
 
-                            @Override
-                            public CurrentUser getCurrentUser() {
-                                if(!ReviewAssistant.realUser) {
+                            @Override public CurrentUser getCurrentUser() {
+                                if (!ReviewAssistant.realUser) {
                                     return pluginUser;
                                 } else {
                                     return identifiedUserFactory.create(change.getOwner());
                                 }
                             }
 
-                            @Override
-                            public Provider<ReviewDb> getReviewDbProvider() {
+                            @Override public Provider<ReviewDb> getReviewDbProvider() {
                                 return new Provider<ReviewDb>() {
-                                    @Override
-                                    public ReviewDb get() {
+                                    @Override public ReviewDb get() {
                                         if (db == null) {
                                             try {
                                                 db = schemaFactory.open();
                                             } catch (OrmException e) {
-                                                throw new ProvisionException("Cannot open ReviewDb", e);
+                                                throw new ProvisionException("Cannot open ReviewDb",
+                                                    e);
                                             }
                                         }
                                         return db;

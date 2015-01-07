@@ -21,24 +21,24 @@ import org.slf4j.LoggerFactory;
  * This rest view fetches a calculation and returns it. It is used by the front-end to
  * present the review suggestions to the users.
  */
-@Singleton
-public class GetAdvice implements RestReadView<RevisionResource> {
+@Singleton public class GetAdvice implements RestReadView<RevisionResource> {
 
+    private static final Logger log = LoggerFactory.getLogger(GetAdvice.class);
     private Storage storage;
     private GerritApi gApi;
     private ChangeApi cApi;
-    private static final Logger log = LoggerFactory.getLogger(GetAdvice.class);
 
-    @Inject
-    public GetAdvice(GerritApi gApi, Storage storage) {
+    @Inject public GetAdvice(GerritApi gApi, Storage storage) {
         this.storage = storage;
         this.gApi = gApi;
     }
 
-    @Override
-    public Object apply(RevisionResource resource) throws AuthException, BadRequestException, ResourceConflictException {
-        Calculation calculation = storage.fetchCalculation(resource.getPatchSet().getRevision().get());
-        String advice = "<div id=\"reviewAssistant\" style=\"padding-top: 10px;\" ><strong>ReviewAssistant</strong>";
+    @Override public Object apply(RevisionResource resource)
+        throws AuthException, BadRequestException, ResourceConflictException {
+        Calculation calculation =
+            storage.fetchCalculation(resource.getPatchSet().getRevision().get());
+        String advice =
+            "<div id=\"reviewAssistant\" style=\"padding-top: 10px;\" ><strong>ReviewAssistant</strong>";
         advice += "<div>Reviewers should spend <strong>";
         if (calculation == null || calculation.totalReviewTime == 0) {
             try {
@@ -64,7 +64,7 @@ public class GetAdvice implements RestReadView<RevisionResource> {
         advice += "</strong> reviewing this change.</div>";
         if (calculation.hours >= 1) {
             advice += "<div>This should be split up in <strong>" + calculation.sessions +
-                    " to " + (calculation.sessions + 1) + " sessions</strong>.</div>";
+                " to " + (calculation.sessions + 1) + " sessions</strong>.</div>";
         }
 
         advice += "</div>";
