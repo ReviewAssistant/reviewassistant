@@ -43,7 +43,8 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
-enum AddReason { PLUS_TWO, EXPERIENCE }
+enum AddReason {PLUS_TWO, EXPERIENCE}
+
 
 /**
  * A class for calculating recommended review time and
@@ -184,9 +185,11 @@ public class ReviewAssistant implements Runnable {
         Map<Account, Integer> reviewersApproved = new HashMap<>();
         try {
             List<ChangeInfo> infoList =
-                gApi.changes().query("status:merged -owner:" + change.getOwner().get() +
-                    " -age:" + plusTwoAge + "weeks limit:" + plusTwoLimit + " label:Code-Review=2 project:" +
-                    projectName.toString())
+                gApi.changes().query(
+                    "status:merged -age:" + plusTwoAge + "weeks limit:" + plusTwoLimit
+                        + " -label:Code-Review=2," + change.getOwner().get()
+                        + " label:Code-Review=2 project:" +
+                        projectName.toString())
                     .withOptions(ListChangesOption.LABELS, ListChangesOption.DETAILED_ACCOUNTS)
                     .get();
             for (ChangeInfo info : infoList) {
@@ -295,7 +298,7 @@ public class ReviewAssistant implements Runnable {
      * Adds reviewers to the change.
      *
      * @param change the change for which reviewers should be added
-     * @param map map of reviewers and their reasons for being added
+     * @param map    map of reviewers and their reasons for being added
      */
     private void addReviewers(Change change, Map<Account, AddReason> map) {
         try {
@@ -303,7 +306,7 @@ public class ReviewAssistant implements Runnable {
             for (Entry<Account, AddReason> entry : map.entrySet()) {
                 cApi.addReviewer(entry.getKey().getId().toString());
                 String reason;
-                switch(entry.getValue()) {
+                switch (entry.getValue()) {
                     case PLUS_TWO:
                         reason = "+2";
                         break;
@@ -354,8 +357,9 @@ public class ReviewAssistant implements Runnable {
 
     @Override
     public void run() {
-        log.info("CONFIG: maxReviewers: " + maxReviewers + ", enableLoadBalancing: " + loadBalancing +
-            ", plusTwoAge: " + plusTwoAge + ", plusTwoLimit: " + plusTwoLimit);
+        log.info(
+            "CONFIG: maxReviewers: " + maxReviewers + ", enableLoadBalancing: " + loadBalancing +
+                ", plusTwoAge: " + plusTwoAge + ", plusTwoLimit: " + plusTwoLimit);
         PatchList patchList;
         try {
             patchList = patchListCache.get(change, ps);
