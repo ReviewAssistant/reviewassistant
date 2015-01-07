@@ -43,7 +43,8 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
-enum AddReason { PLUS_TWO, EXPERIENCE }
+enum AddReason {PLUS_TWO, EXPERIENCE}
+
 
 /**
  * A class for calculating recommended review time and
@@ -51,6 +52,8 @@ enum AddReason { PLUS_TWO, EXPERIENCE }
  */
 public class ReviewAssistant implements Runnable {
 
+    private static final Logger log = LoggerFactory.getLogger(ReviewAssistant.class);
+    public static boolean realUser = false;
     private final AccountByEmailCache emailCache;
     private final AccountCache accountCache;
     private final Change change;
@@ -59,25 +62,17 @@ public class ReviewAssistant implements Runnable {
     private final Repository repo;
     private final RevCommit commit;
     private final PluginConfigFactory cfg;
-    private static final Logger log = LoggerFactory.getLogger(ReviewAssistant.class);
     private final Project.NameKey projectName;
     private final GerritApi gApi;
-    public static boolean realUser = false;
     private final int maxReviewers;
     private final boolean loadBalancing;
     private final String plusTwoAge;
     private final int plusTwoLimit;
 
 
-    public interface Factory {
-        ReviewAssistant create(RevCommit commit, Change change, PatchSet ps, Repository repo,
-            Project.NameKey projectName);
-    }
-
     @Inject
     public ReviewAssistant(final PatchListCache patchListCache, final AccountCache accountCache,
-        final GerritApi gApi, final AccountByEmailCache emailCache,
-        final PluginConfigFactory cfg,
+        final GerritApi gApi, final AccountByEmailCache emailCache, final PluginConfigFactory cfg,
         @Assisted final RevCommit commit, @Assisted final Change change,
         @Assisted final PatchSet ps, @Assisted final Repository repo,
         @Assisted final Project.NameKey projectName) {
@@ -105,7 +100,7 @@ public class ReviewAssistant implements Runnable {
             tmpPlusTwoAge =
                 cfg.getProjectPluginConfigWithInheritance(projectName, "reviewassistant")
                     .getString("reviewers", "", "plusTwoAge");
-            if(tmpPlusTwoAge == null) {
+            if (tmpPlusTwoAge == null) {
                 tmpPlusTwoAge = "8weeks";
             }
             tmpPlusTwoLimit =
@@ -188,7 +183,8 @@ public class ReviewAssistant implements Runnable {
         try {
             List<ChangeInfo> infoList =
                 gApi.changes().query("status:merged -owner:" + change.getOwner().get() +
-                    " -age:" + plusTwoAge + " limit:" + plusTwoLimit + " label:Code-Review=2 project:" +
+                    " -age:" + plusTwoAge + " limit:" + plusTwoLimit
+                    + " label:Code-Review=2 project:" +
                     projectName.toString())
                     .withOptions(ListChangesOption.LABELS, ListChangesOption.DETAILED_ACCOUNTS)
                     .get();
@@ -283,8 +279,7 @@ public class ReviewAssistant implements Runnable {
 
         List<Entry<Account, Integer>> topReviewers =
             Ordering.from(new Comparator<Entry<Account, Integer>>() {
-                @Override
-                public int compare(Entry<Account, Integer> itemOne,
+                @Override public int compare(Entry<Account, Integer> itemOne,
                     Entry<Account, Integer> itemTwo) {
                     return itemOne.getValue() - itemTwo.getValue();
                 }
@@ -298,7 +293,7 @@ public class ReviewAssistant implements Runnable {
      * Adds reviewers to the change.
      *
      * @param change the change for which reviewers should be added
-     * @param map map of reviewers and their reasons for being added
+     * @param map    map of reviewers and their reasons for being added
      */
     private void addReviewers(Change change, Map<Account, AddReason> map) {
         try {
@@ -306,7 +301,7 @@ public class ReviewAssistant implements Runnable {
             for (Entry<Account, AddReason> entry : map.entrySet()) {
                 cApi.addReviewer(entry.getKey().getId().toString());
                 String reason;
-                switch(entry.getValue()) {
+                switch (entry.getValue()) {
                     case PLUS_TWO:
                         reason = "+2";
                         break;
@@ -355,10 +350,10 @@ public class ReviewAssistant implements Runnable {
         return modifiableList;
     }
 
-    @Override
-    public void run() {
-        log.info("CONFIG: maxReviewers: " + maxReviewers + ", enableLoadBalancing: " + loadBalancing +
-            ", plusTwoAge: " + plusTwoAge + ", plusTwoLimit: " + plusTwoLimit);
+    @Override public void run() {
+        log.info(
+            "CONFIG: maxReviewers: " + maxReviewers + ", enableLoadBalancing: " + loadBalancing +
+                ", plusTwoAge: " + plusTwoAge + ", plusTwoLimit: " + plusTwoLimit);
         PatchList patchList;
         try {
             patchList = patchListCache.get(change, ps);
@@ -413,5 +408,10 @@ public class ReviewAssistant implements Runnable {
         addReviewers(change, finalMap);
         realUser = false;
 
+    }
+
+    public interface Factory {
+        ReviewAssistant create(RevCommit commit, Change change, PatchSet ps, Repository repo,
+            Project.NameKey projectName);
     }
 }

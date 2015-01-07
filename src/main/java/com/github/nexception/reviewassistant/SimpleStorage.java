@@ -25,17 +25,18 @@ public class SimpleStorage implements Storage {
     private static final Logger log = LoggerFactory.getLogger(SimpleStorage.class);
     private File dir;
 
-    @Inject
-    SimpleStorage(@PluginData File dir) {
+    @Inject SimpleStorage(@PluginData File dir) {
         this.dir = dir;
     }
 
-    @Override
-    public void storeCalculation(Calculation calculation) {
-        File file = new File(dir, calculation.commitId.substring(0, 2) + File.separator + calculation.commitId.substring(2));
+    @Override public void storeCalculation(Calculation calculation) {
+        File file = new File(dir,
+            calculation.commitId.substring(0, 2) + File.separator + calculation.commitId
+                .substring(2));
         log.debug("Writing calculation to " + file);
         file.getParentFile().mkdirs();
-        try (BufferedWriter writer = Files.newBufferedWriter(file.toPath(), Charset.forName("UTF-8"))) {
+        try (BufferedWriter writer = Files
+            .newBufferedWriter(file.toPath(), Charset.forName("UTF-8"))) {
             Gson gson = new Gson();
             String s = gson.toJson(calculation);
             writer.write(s, 0, s.length());
@@ -49,11 +50,12 @@ public class SimpleStorage implements Storage {
         }
     }
 
-    @Override
-    public Calculation fetchCalculation(String commitId) {
-        File file = new File(dir, commitId.substring(0, 2) + File.separator + commitId.substring(2));
+    @Override public Calculation fetchCalculation(String commitId) {
+        File file =
+            new File(dir, commitId.substring(0, 2) + File.separator + commitId.substring(2));
         log.debug("Loading calculation from " + file);
-        try (BufferedReader reader = Files.newBufferedReader(file.toPath(), Charset.forName("UTF-8"))) {
+        try (BufferedReader reader = Files
+            .newBufferedReader(file.toPath(), Charset.forName("UTF-8"))) {
             Gson gson = new Gson();
             Calculation calculation = gson.fromJson(reader.readLine(), Calculation.class);
             log.info("Returning Calculation " + calculation.toString());
