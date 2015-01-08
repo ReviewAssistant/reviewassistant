@@ -14,25 +14,31 @@ Other projects can then override the configuration in their own
     enableLoadBalancing = false
     plusTwoAge = 8
     plusTwoLimit = 10
+    plusTwoRequired = true
+    reviewTimeModifier = 100
+    autoAddReviewers = true
+
 ```
 
 reviewers.maxReviewers
-:	The maximum number of reviewers that should automatically be added to a change.
+:   The maximum number of reviewers that should automatically be added to a change.
 
 	By default 3.
 
 reviewers.enableLoadBalancing
-:	If loadbalancing is enabled, reviewers' other reviews are taken into acount, and those with
-fewer other reviews are favored.
+:   If loadbalancing is enabled, reviewers' other reviews are taken into account, and those with
+    fewer other reviews are favored.
 
-	By default false.
+	  By default false.
 
-The query used for finding suitable +2 accounts is
+    The query used for finding suitable +2 accounts is
 
-    status:merged -owner:<Change Owner> -age:<plusTwoAge>weeks limit:<plusTwoLimit> label:Code-Review=2 project:<Project Name>
-This query has a potential to slow down performance, but care has been taken to choose sensible defaults.
-The query returns a list of changes, whenever one of the conditions age or limit is fulfilled. The
-account that +2'd the change is then considered as a candidate to review the new change.
+    status:merged -age:<plusTwoAge>weeks limit:<plusTwoLimit> -label:Code-Review=2,<Change Owner>
+    label:Code-Review=2 project:<Project Name>
+
+    This query has a potential to slow down performance, but care has been taken to choose sensible defaults.
+    The query returns a list of changes, whenever one of the conditions age or limit is fulfilled. The
+    account that +2'd the change is then considered as a candidate to review the new change.
 
 reviewers.plusTwoAge
 :   How far back (in weeks) in history to look.
@@ -43,3 +49,19 @@ reviewers.plusTwoLimit
 :   How many changes to take.
 
     By default 10.
+
+reviewers.plusTwoRequired
+:   Whether a user with merge rights is required to be added as a reviewer.
+
+    By default true.
+
+reviewers.reviewTimeModifier
+:   Modifier for total review time in percentage. Also affects sessions indirectly.
+    Value of 50 will cut the review time in half.
+
+    By default 100.
+
+reviewers.autoAddReviewer
+:   If reviewers should be added to a change. If disabled, only review advice is given.
+
+    By default true.
