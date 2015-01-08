@@ -52,6 +52,7 @@ enum AddReason {PLUS_TWO, EXPERIENCE}
  */
 public class ReviewAssistant implements Runnable {
 
+    public static boolean realUser;
     private final AccountByEmailCache emailCache;
     private final AccountCache accountCache;
     private final Change change;
@@ -59,15 +60,15 @@ public class ReviewAssistant implements Runnable {
     private final PatchSet ps;
     private final Repository repo;
     private final RevCommit commit;
-    private final PluginConfigFactory cfg;
     private static final Logger log = LoggerFactory.getLogger(ReviewAssistant.class);
     private final Project.NameKey projectName;
     private final GerritApi gApi;
-    public static boolean realUser = false;
     private final int maxReviewers;
     private final boolean loadBalancing;
     private final int plusTwoAge;
     private final int plusTwoLimit;
+    private final boolean plusTwoRequired;
+    private static double reviewTimeModifier;
 
 
     public interface Factory {
@@ -89,14 +90,17 @@ public class ReviewAssistant implements Runnable {
         this.repo = repo;
         this.accountCache = accountCache;
         this.emailCache = emailCache;
-        this.cfg = cfg;
         this.projectName = projectName;
         this.gApi = gApi;
         int tmpMaxReviewers;
         boolean tmpLoadBalancing;
         int tmpPlusTwoAge;
         int tmpPlusTwoLimit;
+        boolean tmpPlusTwoRequired;
         try {
+            reviewTimeModifier =
+                cfg.getProjectPluginConfigWithInheritance(projectName, "reviewassistant")
+                    .getInt("time", "reviewTimeModifier", 100);
             tmpMaxReviewers =
                 cfg.getProjectPluginConfigWithInheritance(projectName, "reviewassistant")
                     .getInt("reviewers", "maxReviewers", 3);
@@ -109,17 +113,24 @@ public class ReviewAssistant implements Runnable {
             tmpPlusTwoLimit =
                 cfg.getProjectPluginConfigWithInheritance(projectName, "reviewassistant")
                     .getInt("reviewers", "plusTwoLimit", 10);
+            tmpPlusTwoRequired =
+                cfg.getProjectPluginConfigWithInheritance(projectName, "reviewassistant")
+                    .getBoolean("reviewers", "plusTwoRequired", true);
         } catch (NoSuchProjectException e) {
             log.error(e.getMessage(), e);
+            reviewTimeModifier = 100;
             tmpMaxReviewers = 3;
             tmpLoadBalancing = false;
             tmpPlusTwoAge = 8;
             tmpPlusTwoLimit = 10;
+            tmpPlusTwoRequired = true;
         }
+        reviewTimeModifier /= 100;
         this.maxReviewers = tmpMaxReviewers;
         this.loadBalancing = tmpLoadBalancing;
         this.plusTwoAge = tmpPlusTwoAge;
         this.plusTwoLimit = tmpPlusTwoLimit;
+        this.plusTwoRequired = tmpPlusTwoRequired;
     }
 
     /**
@@ -134,9 +145,9 @@ public class ReviewAssistant implements Runnable {
         Calculation calculation = new Calculation();
         calculation.commitId = info.currentRevision;
         calculation.totalReviewTime = calculateReviewTime(info);
-        calculation.hours = calculateReviewTime(info) / 60;
-        calculation.minutes = calculateReviewTime(info) % 60;
-        calculation.sessions = calculateReviewSessions(calculateReviewTime(info));
+        calculation.hours = calculation.totalReviewTime / 60;
+        calculation.minutes = calculation.totalReviewTime % 60;
+        calculation.sessions = calculateReviewSessions(calculation.totalReviewTime);
 
         return calculation;
     }
@@ -151,8 +162,10 @@ public class ReviewAssistant implements Runnable {
      * @return the total amount of time recommended for a review
      */
     private static int calculateReviewTime(ChangeInfo info) {
+        //TODO Make reviewTimeModifier initialize independently
+        log.debug("reviewTimeModifier: {}", reviewTimeModifier);
         int lines = info.insertions + Math.abs(info.deletions);
-        int minutes = (int) Math.ceil(lines / 5);
+        int minutes = (int) Math.ceil(lines * reviewTimeModifier / 5);
         minutes = (int) Math.ceil(minutes / 5.0);
         minutes = minutes * 5;
         if (minutes < 5) {
@@ -193,14 +206,20 @@ public class ReviewAssistant implements Runnable {
                     .withOptions(ListChangesOption.LABELS, ListChangesOption.DETAILED_ACCOUNTS)
                     .get();
             for (ChangeInfo info : infoList) {
-                Account account =
-                    accountCache.getByUsername(info.labels.get("Code-Review").approved.username)
-                        .getAccount();
-                if (reviewersApproved.containsKey(account)) {
-                    reviewersApproved.put(account, reviewersApproved.get(account) + 1);
-                } else {
-                    reviewersApproved.put(account, 1);
+                //TODO Check if this is good enough
+                try {
+                    Account account =
+                        accountCache.getByUsername(info.labels.get("Code-Review").approved.username)
+                            .getAccount();
+                    if (reviewersApproved.containsKey(account)) {
+                        reviewersApproved.put(account, reviewersApproved.get(account) + 1);
+                    } else {
+                        reviewersApproved.put(account, 1);
+                    }
+                } catch (NullPointerException e) {
+                    log.error("No username for this account found in cache {}", e);
                 }
+
             }
         } catch (RestApiException e) {
             log.error(e.getMessage(), e);
@@ -270,7 +289,7 @@ public class ReviewAssistant implements Runnable {
                             if (count == null) {
                                 count = 1;
                             } else {
-                                count = count.intValue() + 1;
+                                count = count + 1;
                             }
                             blameData.put(account, count);
                         }
@@ -359,7 +378,8 @@ public class ReviewAssistant implements Runnable {
     public void run() {
         log.info(
             "CONFIG: maxReviewers: " + maxReviewers + ", enableLoadBalancing: " + loadBalancing +
-                ", plusTwoAge: " + plusTwoAge + ", plusTwoLimit: " + plusTwoLimit);
+                ", plusTwoAge: " + plusTwoAge + ", plusTwoLimit: " + plusTwoLimit
+                + ", plusTwoRequired: " + plusTwoRequired);
         PatchList patchList;
         try {
             patchList = patchListCache.get(change, ps);
@@ -373,8 +393,13 @@ public class ReviewAssistant implements Runnable {
             return;
         }
 
-        List<Entry<Account, Integer>> mergeCandidates = getApprovalAccounts();
-
+        List<Entry<Account, Integer>> mergeCandidates;
+        if (plusTwoRequired) {
+            mergeCandidates = getApprovalAccounts();
+        } else {
+            //TODO Fugly
+            mergeCandidates = new ArrayList<>();
+        }
         List<Entry<Account, Integer>> blameCandidates = new LinkedList<>();
         for (PatchListEntry entry : patchList.getPatches()) {
             /*
@@ -394,13 +419,17 @@ public class ReviewAssistant implements Runnable {
         }
 
         if (loadBalancing) {
-            mergeCandidates = sortByOpenChanges(mergeCandidates);
             blameCandidates = sortByOpenChanges(blameCandidates);
+            if (!mergeCandidates.isEmpty()) {
+                mergeCandidates = sortByOpenChanges(mergeCandidates);
+            }
         }
 
         Map<Account, AddReason> finalMap = new HashMap<>();
         Iterator<Entry<Account, Integer>> itr = blameCandidates.iterator();
-        finalMap.put(mergeCandidates.get(0).getKey(), AddReason.PLUS_TWO);
+        if (!mergeCandidates.isEmpty()) {
+            finalMap.put(mergeCandidates.get(0).getKey(), AddReason.PLUS_TWO);
+        }
         while (finalMap.size() < maxReviewers && itr.hasNext()) {
             Account account = itr.next().getKey();
             if (!finalMap.containsKey(account)) {
