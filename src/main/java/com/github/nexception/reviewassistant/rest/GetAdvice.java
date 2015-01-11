@@ -1,7 +1,7 @@
 package com.github.nexception.reviewassistant.rest;
 
+import com.github.nexception.reviewassistant.Cache;
 import com.github.nexception.reviewassistant.ReviewAssistant;
-import com.github.nexception.reviewassistant.Storage;
 import com.github.nexception.reviewassistant.models.Calculation;
 import com.google.gerrit.extensions.api.GerritApi;
 import com.google.gerrit.extensions.api.changes.ChangeApi;
@@ -24,47 +24,37 @@ import org.slf4j.LoggerFactory;
 @Singleton
 public class GetAdvice implements RestReadView<RevisionResource> {
 
-    private Storage storage;
-    private GerritApi gApi;
-    private ChangeApi cApi;
-    private static final Logger log = LoggerFactory.getLogger(GetAdvice.class);
+    private Cache cache;
 
     @Inject
-    public GetAdvice(GerritApi gApi, Storage storage) {
-        this.storage = storage;
-        this.gApi = gApi;
+    public GetAdvice(Cache cache) {
+        this.cache = cache;
     }
 
     @Override
     public Object apply(RevisionResource resource) throws AuthException, BadRequestException, ResourceConflictException {
-        Calculation calculation = storage.fetchCalculation(resource.getPatchSet().getRevision().get());
+        Calculation calculation = cache.fetchCalculation(resource);
         String advice = "<div id=\"reviewAssistant\" style=\"padding-top: 10px;\" ><strong>ReviewAssistant</strong>";
-        advice += "<div>Reviewers should spend <strong>";
-        if (calculation == null || calculation.totalReviewTime == 0) {
-            try {
-                cApi = gApi.changes().id(resource.getChange().getChangeId());
-                ChangeInfo info = cApi.get();
-                calculation = ReviewAssistant.calculate(info);
-                storage.storeCalculation(calculation);
-            } catch (RestApiException e) {
-                log.error(e.getMessage(), e);
+        if (calculation != null) {
+            advice += "<div>Reviewers should spend <strong>";
+            if (calculation.hours == 1) {
+                advice += calculation.hours + " hour";
+            } else if (calculation.hours > 1) {
+                advice += calculation.hours + " hours";
             }
-        }
-        if (calculation.hours == 1) {
-            advice += calculation.hours + " hour";
-        } else if (calculation.hours > 1) {
-            advice += calculation.hours + " hours";
-        }
-        if (calculation.hours > 0 && calculation.minutes > 0) {
-            advice += " and ";
-        }
-        if (calculation.minutes > 0) {
-            advice += calculation.minutes + " minutes";
-        }
-        advice += "</strong> reviewing this change.</div>";
-        if (calculation.hours >= 1) {
-            advice += "<div>This should be split up in <strong>" + calculation.sessions +
-                    " to " + (calculation.sessions + 1) + " sessions</strong>.</div>";
+            if (calculation.hours > 0 && calculation.minutes > 0) {
+                advice += " and ";
+            }
+            if (calculation.minutes > 0) {
+                advice += calculation.minutes + " minutes";
+            }
+            advice += "</strong> reviewing this change.</div>";
+            if (calculation.hours >= 1) {
+                advice += "<div>This should be split up in <strong>" + calculation.sessions +
+                        " to " + (calculation.sessions + 1) + " sessions</strong>.</div>";
+            }
+        } else {
+            advice += "<div>Could not get advice for this change.</div>";
         }
 
         advice += "</div>";

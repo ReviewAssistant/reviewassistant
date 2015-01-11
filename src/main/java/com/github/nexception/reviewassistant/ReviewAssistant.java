@@ -165,7 +165,8 @@ public class ReviewAssistant implements Runnable {
         //TODO Make reviewTimeModifier initialize independently
         log.debug("reviewTimeModifier: {}", reviewTimeModifier);
         int lines = info.insertions + Math.abs(info.deletions);
-        int minutes = (int) Math.ceil(lines * reviewTimeModifier / 5);
+        //int minutes = (int) Math.ceil(lines * reviewTimeModifier / 5);
+        int minutes = (int) Math.ceil(lines / 5);
         minutes = (int) Math.ceil(minutes / 5.0);
         minutes = minutes * 5;
         if (minutes < 5) {
