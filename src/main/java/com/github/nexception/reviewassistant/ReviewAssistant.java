@@ -68,7 +68,6 @@ public class ReviewAssistant implements Runnable {
     private final int plusTwoAge;
     private final int plusTwoLimit;
     private final boolean plusTwoRequired;
-    private static double reviewTimeModifier;
 
 
     public interface Factory {
@@ -98,9 +97,6 @@ public class ReviewAssistant implements Runnable {
         int tmpPlusTwoLimit;
         boolean tmpPlusTwoRequired;
         try {
-            reviewTimeModifier =
-                cfg.getProjectPluginConfigWithInheritance(projectName, "reviewassistant")
-                    .getInt("time", "reviewTimeModifier", 100);
             tmpMaxReviewers =
                 cfg.getProjectPluginConfigWithInheritance(projectName, "reviewassistant")
                     .getInt("reviewers", "maxReviewers", 3);
@@ -118,14 +114,12 @@ public class ReviewAssistant implements Runnable {
                     .getBoolean("reviewers", "plusTwoRequired", true);
         } catch (NoSuchProjectException e) {
             log.error(e.getMessage(), e);
-            reviewTimeModifier = 100;
             tmpMaxReviewers = 3;
             tmpLoadBalancing = false;
             tmpPlusTwoAge = 8;
             tmpPlusTwoLimit = 10;
             tmpPlusTwoRequired = true;
         }
-        reviewTimeModifier /= 100;
         this.maxReviewers = tmpMaxReviewers;
         this.loadBalancing = tmpLoadBalancing;
         this.plusTwoAge = tmpPlusTwoAge;
@@ -140,11 +134,11 @@ public class ReviewAssistant implements Runnable {
      * @param info the data for a patch set
      * @return the Calculation object for a review
      */
-    public static Calculation calculate(ChangeInfo info) {
+    public static Calculation calculate(ChangeInfo info, double reviewTimeModifier) {
         log.debug("Received event: " + info.currentRevision);    //Commit-ID
         Calculation calculation = new Calculation();
         calculation.commitId = info.currentRevision;
-        calculation.totalReviewTime = calculateReviewTime(info);
+        calculation.totalReviewTime = calculateReviewTime(info, reviewTimeModifier);
         calculation.hours = calculation.totalReviewTime / 60;
         calculation.minutes = calculation.totalReviewTime % 60;
         calculation.sessions = calculateReviewSessions(calculation.totalReviewTime);
@@ -161,8 +155,7 @@ public class ReviewAssistant implements Runnable {
      * @param info the data for a patch set
      * @return the total amount of time recommended for a review
      */
-    private static int calculateReviewTime(ChangeInfo info) {
-        //TODO Make reviewTimeModifier initialize independently
+    private static int calculateReviewTime(ChangeInfo info, double reviewTimeModifier) {
         log.debug("reviewTimeModifier: {}", reviewTimeModifier);
         int lines = info.insertions + Math.abs(info.deletions);
         int minutes = (int) Math.ceil(lines * reviewTimeModifier / 5);
@@ -439,7 +432,6 @@ public class ReviewAssistant implements Runnable {
 
         //TODO Move into addReviewers?
         realUser = true;
-        //        addReviewers(change, finalSet);
         addReviewers(change, finalMap);
         realUser = false;
 
