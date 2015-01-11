@@ -53,7 +53,7 @@ class ChangeEventListener implements ChangeListener {
         final WorkQueue workQueue, final GitRepositoryManager repoManager,
         final SchemaFactory<ReviewDb> schemaFactory,
         final ThreadLocalRequestContext tl, final PluginUser pluginUser,
-        final IdentifiedUser.GenericFactory identifiedUserFactory, final PluginConfigFactory cfg) {
+        final IdentifiedUser.GenericFactory identifiedUserFactory, final PluginConfigFactory cfg, TestClass testClass) {
         this.workQueue = workQueue;
         this.reviewAssistantFactory = reviewAssistantFactory;
         this.repoManager = repoManager;
@@ -62,6 +62,8 @@ class ChangeEventListener implements ChangeListener {
         this.pluginUser = pluginUser;
         this.identifiedUserFactory = identifiedUserFactory;
         this.cfg = cfg;
+        log.info(testClass.getMessage());
+        testClass.setMessage("I'm alive!");
     }
 
     @Override

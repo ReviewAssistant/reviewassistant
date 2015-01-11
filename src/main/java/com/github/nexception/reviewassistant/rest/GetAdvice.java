@@ -2,6 +2,7 @@ package com.github.nexception.reviewassistant.rest;
 
 import com.github.nexception.reviewassistant.ReviewAssistant;
 import com.github.nexception.reviewassistant.Storage;
+import com.github.nexception.reviewassistant.TestClass;
 import com.github.nexception.reviewassistant.models.Calculation;
 import com.google.gerrit.extensions.api.GerritApi;
 import com.google.gerrit.extensions.api.changes.ChangeApi;
@@ -27,16 +28,20 @@ public class GetAdvice implements RestReadView<RevisionResource> {
     private Storage storage;
     private GerritApi gApi;
     private ChangeApi cApi;
+    private TestClass testClass;
     private static final Logger log = LoggerFactory.getLogger(GetAdvice.class);
 
     @Inject
-    public GetAdvice(GerritApi gApi, Storage storage) {
+    public GetAdvice(GerritApi gApi, Storage storage, TestClass testClass) {
         this.storage = storage;
         this.gApi = gApi;
+        this.testClass = testClass;
     }
 
     @Override
     public Object apply(RevisionResource resource) throws AuthException, BadRequestException, ResourceConflictException {
+        log.info("In GetAdvice: ", testClass.getMessage());
+        testClass.setMessage("I was used in GetAdvice");
         Calculation calculation = storage.fetchCalculation(resource.getPatchSet().getRevision().get());
         String advice = "<div id=\"reviewAssistant\" style=\"padding-top: 10px;\" ><strong>ReviewAssistant</strong>";
         advice += "<div>Reviewers should spend <strong>";
