@@ -1,6 +1,6 @@
 package com.github.nexception.reviewassistant.rest;
 
-import com.github.nexception.reviewassistant.Cache;
+import com.github.nexception.reviewassistant.AdviceCache;
 import com.github.nexception.reviewassistant.models.Calculation;
 import com.google.gerrit.extensions.restapi.AuthException;
 import com.google.gerrit.extensions.restapi.BadRequestException;
@@ -17,17 +17,17 @@ import com.google.inject.Singleton;
 @Singleton
 public class GetAdvice implements RestReadView<RevisionResource> {
 
-    private Cache cache;
+    private AdviceCache adviceCache;
 
     @Inject
-    public GetAdvice(Cache cache) {
-        this.cache = cache;
+    public GetAdvice(AdviceCache adviceCache) {
+        this.adviceCache = adviceCache;
     }
 
     @Override
     public Object apply(RevisionResource resource)
         throws AuthException, BadRequestException, ResourceConflictException {
-        Calculation calculation = cache.fetchCalculation(resource);
+        Calculation calculation = adviceCache.fetchCalculation(resource);
         String advice =
             "<div id=\"reviewAssistant\" style=\"padding-top: 10px;\" ><strong>ReviewAssistant</strong>";
         if (calculation != null) {

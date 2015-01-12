@@ -4,9 +4,9 @@ import com.github.nexception.reviewassistant.models.Calculation;
 import com.google.gerrit.server.change.RevisionResource;
 
 /**
- * The Cache interface is used to store and fetch calculations.
+ * The AdviceCache interface is used to store and fetch calculations.
  */
-public interface Cache {
+public interface AdviceCache {
 
     /**
      * Caches the provided calculation.
