@@ -418,16 +418,36 @@ public class ReviewAssistant implements Runnable {
         }
 
         Map<Account, AddReason> finalMap = new HashMap<>();
-        Iterator<Entry<Account, Integer>> itr = blameCandidates.iterator();
-        if (!mergeCandidates.isEmpty()) {
-            finalMap.put(mergeCandidates.get(0).getKey(), AddReason.PLUS_TWO);
-        }
-        while (finalMap.size() < maxReviewers && itr.hasNext()) {
-            Account account = itr.next().getKey();
-            if (!finalMap.containsKey(account)) {
-                finalMap.put(account, AddReason.EXPERIENCE);
+        if(blameCandidates.size() < maxReviewers) {
+            List<Entry<Account, Integer>> uniqueMergeCandidates = new ArrayList<>(mergeCandidates);
+            uniqueMergeCandidates.removeAll(blameCandidates);
+            if (uniqueMergeCandidates.size() > 0) {
+                for (Entry<Account, Integer> e : blameCandidates) {
+                    finalMap.put(e.getKey(), AddReason.EXPERIENCE);
+                }
+                Iterator<Entry<Account, Integer>> itr = uniqueMergeCandidates.iterator();
+                while (finalMap.size() < maxReviewers && itr.hasNext()) {
+                    Account account = itr.next().getKey();
+                    if (!finalMap.containsKey(account)) {
+                        finalMap.put(account, AddReason.PLUS_TWO);
+                    }
+                }
+            } else {
+                Iterator<Entry<Account, Integer>> itr = blameCandidates.iterator();
+                if (!mergeCandidates.isEmpty()) {
+                    finalMap.put(mergeCandidates.get(0).getKey(), AddReason.PLUS_TWO);
+                }
+                while (finalMap.size() < maxReviewers && itr.hasNext()) {
+                    Account account = itr.next().getKey();
+                    if (!finalMap.containsKey(account)) {
+                        finalMap.put(account, AddReason.EXPERIENCE);
+                    }
+                }
             }
         }
+
+
+
 
         //TODO Move into addReviewers?
         realUser = true;
