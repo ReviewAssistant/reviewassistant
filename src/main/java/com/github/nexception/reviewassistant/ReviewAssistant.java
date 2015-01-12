@@ -418,14 +418,37 @@ public class ReviewAssistant implements Runnable {
         }
 
         Map<Account, AddReason> finalMap = new HashMap<>();
-        Iterator<Entry<Account, Integer>> itr = blameCandidates.iterator();
-        if (!mergeCandidates.isEmpty()) {
-            finalMap.put(mergeCandidates.get(0).getKey(), AddReason.PLUS_TWO);
-        }
-        while (finalMap.size() < maxReviewers && itr.hasNext()) {
-            Account account = itr.next().getKey();
-            if (!finalMap.containsKey(account)) {
-                finalMap.put(account, AddReason.EXPERIENCE);
+        if(blameCandidates.size() < maxReviewers) {
+            Iterator<Entry<Account, Integer>> mergeItr = mergeCandidates.iterator();
+            for (Entry<Account, Integer> e : blameCandidates) {
+                finalMap.put(e.getKey(), AddReason.EXPERIENCE);
+                log.info("Added {} ({})", e.getKey().getPreferredEmail(), AddReason.EXPERIENCE);
+            }
+            boolean plusTwoAdded = false;
+            while (finalMap.size() < maxReviewers && mergeItr.hasNext()) {
+                Account account = mergeItr.next().getKey();
+                if(!finalMap.containsKey(account)) {
+                    finalMap.put(account, AddReason.PLUS_TWO);
+                    log.info("Added {} ({})", account.getPreferredEmail(), AddReason.PLUS_TWO);
+                    plusTwoAdded = true;
+                } else if(!mergeItr.hasNext() && !plusTwoAdded) {
+                    finalMap.put(mergeCandidates.get(0).getKey(), AddReason.PLUS_TWO);
+                    log.info("Changed reason for {} to {}",
+                            mergeCandidates.get(0).getKey().getPreferredEmail(), AddReason.PLUS_TWO);
+                }
+            }
+        } else {
+            Iterator<Entry<Account, Integer>> blameItr = blameCandidates.iterator();
+            if (!mergeCandidates.isEmpty()) {
+                finalMap.put(mergeCandidates.get(0).getKey(), AddReason.PLUS_TWO);
+                log.info("Added {} ({})", mergeCandidates.get(0).getKey().getPreferredEmail(), AddReason.PLUS_TWO);
+            }
+            while (finalMap.size() < maxReviewers && blameItr.hasNext()) {
+                Account account = blameItr.next().getKey();
+                if (!finalMap.containsKey(account)) {
+                    finalMap.put(account, AddReason.EXPERIENCE);
+                    log.info("Added {} ({})", account.getPreferredEmail(), AddReason.EXPERIENCE);
+                }
             }
         }
 
@@ -433,6 +456,5 @@ public class ReviewAssistant implements Runnable {
         realUser = true;
         addReviewers(change, finalMap);
         realUser = false;
-
     }
 }
