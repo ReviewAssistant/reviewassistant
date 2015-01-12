@@ -418,14 +418,34 @@ public class ReviewAssistant implements Runnable {
         }
 
         Map<Account, AddReason> finalMap = new HashMap<>();
-        Iterator<Entry<Account, Integer>> itr = blameCandidates.iterator();
-        if (!mergeCandidates.isEmpty()) {
-            finalMap.put(mergeCandidates.get(0).getKey(), AddReason.PLUS_TWO);
-        }
-        while (finalMap.size() < maxReviewers && itr.hasNext()) {
-            Account account = itr.next().getKey();
-            if (!finalMap.containsKey(account)) {
-                finalMap.put(account, AddReason.EXPERIENCE);
+        Iterator<Entry<Account, Integer>> blameItr = blameCandidates.iterator();
+        Iterator<Entry<Account, Integer>> mergeItr = mergeCandidates.iterator();
+
+        if(blameCandidates.size() < maxReviewers) {
+            for (Entry<Account, Integer> e : blameCandidates) {
+                finalMap.put(e.getKey(), AddReason.EXPERIENCE);
+            }
+            boolean plusTwoAdded = false;
+            while (finalMap.size() < maxReviewers && mergeItr.hasNext()) {
+                Account account = mergeItr.next().getKey();
+                if(!mergeItr.hasNext() && !plusTwoAdded) {
+                    finalMap.put(mergeCandidates.get(0).getKey(), AddReason.PLUS_TWO);
+                } else {
+                    if (!finalMap.containsKey(account)) {
+                        finalMap.put(account, AddReason.PLUS_TWO);
+                        plusTwoAdded = true;
+                    }
+                }
+            }
+        } else {
+            if (!mergeCandidates.isEmpty()) {
+                finalMap.put(mergeCandidates.get(0).getKey(), AddReason.PLUS_TWO);
+            }
+            while (finalMap.size() < maxReviewers && blameItr.hasNext()) {
+                Account account = blameItr.next().getKey();
+                if (!finalMap.containsKey(account)) {
+                    finalMap.put(account, AddReason.EXPERIENCE);
+                }
             }
         }
 
