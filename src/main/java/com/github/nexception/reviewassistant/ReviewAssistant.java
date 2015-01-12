@@ -420,6 +420,7 @@ public class ReviewAssistant implements Runnable {
         Map<Account, AddReason> finalMap = new HashMap<>();
         Iterator<Entry<Account, Integer>> blameItr = blameCandidates.iterator();
         Iterator<Entry<Account, Integer>> mergeItr = mergeCandidates.iterator();
+
         if(blameCandidates.size() < maxReviewers) {
             for (Entry<Account, Integer> e : blameCandidates) {
                 finalMap.put(e.getKey(), AddReason.EXPERIENCE);
