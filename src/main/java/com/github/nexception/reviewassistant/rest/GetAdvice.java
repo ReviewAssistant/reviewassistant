@@ -1,21 +1,14 @@
 package com.github.nexception.reviewassistant.rest;
 
 import com.github.nexception.reviewassistant.Cache;
-import com.github.nexception.reviewassistant.ReviewAssistant;
 import com.github.nexception.reviewassistant.models.Calculation;
-import com.google.gerrit.extensions.api.GerritApi;
-import com.google.gerrit.extensions.api.changes.ChangeApi;
-import com.google.gerrit.extensions.common.ChangeInfo;
 import com.google.gerrit.extensions.restapi.AuthException;
 import com.google.gerrit.extensions.restapi.BadRequestException;
 import com.google.gerrit.extensions.restapi.ResourceConflictException;
-import com.google.gerrit.extensions.restapi.RestApiException;
 import com.google.gerrit.extensions.restapi.RestReadView;
 import com.google.gerrit.server.change.RevisionResource;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * This rest view fetches a calculation and returns it. It is used by the front-end to
@@ -32,9 +25,11 @@ public class GetAdvice implements RestReadView<RevisionResource> {
     }
 
     @Override
-    public Object apply(RevisionResource resource) throws AuthException, BadRequestException, ResourceConflictException {
+    public Object apply(RevisionResource resource)
+        throws AuthException, BadRequestException, ResourceConflictException {
         Calculation calculation = cache.fetchCalculation(resource);
-        String advice = "<div id=\"reviewAssistant\" style=\"padding-top: 10px;\" ><strong>ReviewAssistant</strong>";
+        String advice =
+            "<div id=\"reviewAssistant\" style=\"padding-top: 10px;\" ><strong>ReviewAssistant</strong>";
         if (calculation != null) {
             advice += "<div>Reviewers should spend <strong>";
             if (calculation.hours == 1) {
@@ -51,7 +46,7 @@ public class GetAdvice implements RestReadView<RevisionResource> {
             advice += "</strong> reviewing this change.</div>";
             if (calculation.hours >= 1) {
                 advice += "<div>This should be split up in <strong>" + calculation.sessions +
-                        " to " + (calculation.sessions + 1) + " sessions</strong>.</div>";
+                    " to " + (calculation.sessions + 1) + " sessions</strong>.</div>";
             }
         } else {
             advice += "<div>Could not get advice for this change.</div>";
