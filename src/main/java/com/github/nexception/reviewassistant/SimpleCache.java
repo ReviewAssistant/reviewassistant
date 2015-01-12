@@ -7,6 +7,8 @@ import com.google.gerrit.extensions.api.changes.ChangeApi;
 import com.google.gerrit.extensions.common.ChangeInfo;
 import com.google.gerrit.extensions.restapi.RestApiException;
 import com.google.gerrit.server.change.RevisionResource;
+import com.google.gerrit.server.config.PluginConfigFactory;
+import com.google.gerrit.server.project.NoSuchProjectException;
 import com.google.gson.Gson;
 import com.google.inject.Inject;
 import org.slf4j.Logger;
@@ -30,16 +32,19 @@ public class SimpleCache implements Cache {
     private static final Logger log = LoggerFactory.getLogger(SimpleCache.class);
     private File dir;
     private GerritApi gApi;
+    private PluginConfigFactory cfg;
 
     @Inject
-    SimpleCache(@PluginData File dir, GerritApi gApi) {
+    SimpleCache(@PluginData File dir, GerritApi gApi, PluginConfigFactory cfg) {
         this.dir = dir;
         this.gApi = gApi;
+        this.cfg = cfg;
     }
 
     @Override
     public void storeCalculation(Calculation calculation) {
-        File file = new File(dir, calculation.commitId.substring(0, 2) + File.separator + calculation.commitId.substring(2));
+        File file = new File(dir, calculation.commitId.substring(0, 2)
+                + File.separator + calculation.commitId.substring(2));
         log.debug("Writing calculation to {}", file);
         file.getParentFile().mkdirs();
         try (BufferedWriter writer = Files.newBufferedWriter(file.toPath(), Charset.forName("UTF-8"))) {
@@ -58,7 +63,8 @@ public class SimpleCache implements Cache {
 
     @Override
     public Calculation fetchCalculation(RevisionResource resource) {
-        File file = new File(dir, resource.getPatchSet().getRevision().get().substring(0, 2) + File.separator + resource.getPatchSet().getRevision().get().substring(2));
+        File file = new File(dir, resource.getPatchSet().getRevision().get().substring(0, 2)
+                + File.separator + resource.getPatchSet().getRevision().get().substring(2));
         Calculation calculation = null;
         log.debug("Loading calculation from {}", file);
         try (BufferedReader reader = Files.newBufferedReader(file.toPath(), Charset.forName("UTF-8"))) {
@@ -70,14 +76,20 @@ public class SimpleCache implements Cache {
             log.error(e.toString());
         }
         if(calculation == null || calculation.totalReviewTime == 0) {
-            log.debug("Corrupt or missing calculation. Will recalculate for {}", resource.getPatchSet().getRevision().get());
+            log.debug("Corrupt or missing calculation. Will recalculate for {}",
+                    resource.getPatchSet().getRevision().get());
             try {
                 ChangeApi cApi = gApi.changes().id(resource.getChange().getChangeId());
                 ChangeInfo info = cApi.get();
-                calculation = ReviewAssistant.calculate(info);
+                double reviewTimeModifier =
+                        cfg.getProjectPluginConfigWithInheritance(resource.getChange().getProject(), "reviewassistant")
+                                .getInt("time", "reviewTimeModifier", 100)/100;
+                calculation = ReviewAssistant.calculate(info, reviewTimeModifier);
                 storeCalculation(calculation);
             } catch (RestApiException e) {
                 log.error("Could not get ChangeInfo for change {}", resource.getChange().getChangeId());
+            } catch (NoSuchProjectException e) {
+                log.error(e.getMessage(), e);
             }
         }
         return calculation;
