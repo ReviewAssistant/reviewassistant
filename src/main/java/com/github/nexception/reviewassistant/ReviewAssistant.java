@@ -419,15 +419,25 @@ public class ReviewAssistant implements Runnable {
 
         Map<Account, AddReason> finalMap = new HashMap<>();
         Iterator<Entry<Account, Integer>> itr = blameCandidates.iterator();
+        Iterator<Entry<Account, Integer>> itr1 = mergeCandidates.iterator();
         if (!mergeCandidates.isEmpty()) {
-            finalMap.put(mergeCandidates.get(0).getKey(), AddReason.PLUS_TWO);
+            finalMap.put(itr1.next().getKey(), AddReason.PLUS_TWO);
+            //finalMap.put(mergeCandidates.get(0).getKey(), AddReason.PLUS_TWO);
         }
+        //TODO Clean up
         while (finalMap.size() < maxReviewers && itr.hasNext()) {
             Account account = itr.next().getKey();
             if (!finalMap.containsKey(account)) {
                 finalMap.put(account, AddReason.EXPERIENCE);
+            } else {
+                if (itr1.hasNext()) {
+                    finalMap.put(account, AddReason.EXPERIENCE);
+                    finalMap.put(itr1.next().getKey(), AddReason.PLUS_TWO);
+                }
             }
         }
+
+
 
         //TODO Move into addReviewers?
         realUser = true;
