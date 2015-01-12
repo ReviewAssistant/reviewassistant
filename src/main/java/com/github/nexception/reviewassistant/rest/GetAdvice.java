@@ -12,6 +12,8 @@ import com.google.gerrit.extensions.restapi.ResourceConflictException;
 import com.google.gerrit.extensions.restapi.RestApiException;
 import com.google.gerrit.extensions.restapi.RestReadView;
 import com.google.gerrit.server.change.RevisionResource;
+import com.google.gerrit.server.config.PluginConfigFactory;
+import com.google.gerrit.server.project.NoSuchProjectException;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import org.slf4j.Logger;
@@ -28,11 +30,14 @@ public class GetAdvice implements RestReadView<RevisionResource> {
     private GerritApi gApi;
     private ChangeApi cApi;
     private static final Logger log = LoggerFactory.getLogger(GetAdvice.class);
+    private double reviewTimeModifier;
+    private PluginConfigFactory cfg;
 
     @Inject
-    public GetAdvice(GerritApi gApi, Storage storage) {
+    public GetAdvice(GerritApi gApi, Storage storage, PluginConfigFactory cfg) {
         this.storage = storage;
         this.gApi = gApi;
+        this.cfg = cfg;
     }
 
     @Override
@@ -40,11 +45,19 @@ public class GetAdvice implements RestReadView<RevisionResource> {
         Calculation calculation = storage.fetchCalculation(resource.getPatchSet().getRevision().get());
         String advice = "<div id=\"reviewAssistant\" style=\"padding-top: 10px;\" ><strong>ReviewAssistant</strong>";
         advice += "<div>Reviewers should spend <strong>";
+        try{
+            reviewTimeModifier =
+                cfg.getProjectPluginConfigWithInheritance(resource.getChange().getProject(), "reviewassistant")
+                    .getInt("time", "reviewTimeModifier", 100)/100;
+        } catch (NoSuchProjectException e) {
+            log.error(e.getMessage(), e);
+        }
+
         if (calculation == null || calculation.totalReviewTime == 0) {
             try {
                 cApi = gApi.changes().id(resource.getChange().getChangeId());
                 ChangeInfo info = cApi.get();
-                calculation = ReviewAssistant.calculate(info);
+                calculation = ReviewAssistant.calculate(info, reviewTimeModifier);
                 storage.storeCalculation(calculation);
             } catch (RestApiException e) {
                 log.error(e.getMessage(), e);
