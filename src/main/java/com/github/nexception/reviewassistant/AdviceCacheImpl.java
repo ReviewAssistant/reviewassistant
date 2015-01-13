@@ -34,8 +34,7 @@ public class AdviceCacheImpl implements AdviceCache {
     private GerritApi gApi;
     private PluginConfigFactory cfg;
 
-    @Inject
-    AdviceCacheImpl(@PluginData File dir, GerritApi gApi, PluginConfigFactory cfg) {
+    @Inject AdviceCacheImpl(@PluginData File dir, GerritApi gApi, PluginConfigFactory cfg) {
         this.dir = dir;
         this.gApi = gApi;
         this.cfg = cfg;
@@ -44,7 +43,7 @@ public class AdviceCacheImpl implements AdviceCache {
     @Override
     public void storeCalculation(Calculation calculation) {
         File file = new File(dir, calculation.commitId.substring(0, 2)
-                + File.separator + calculation.commitId.substring(2));
+            + File.separator + calculation.commitId.substring(2));
         log.debug("Writing calculation to {}", file);
         file.getParentFile().mkdirs();
         try (BufferedWriter writer = Files
@@ -65,7 +64,7 @@ public class AdviceCacheImpl implements AdviceCache {
     @Override
     public Calculation fetchCalculation(RevisionResource resource) {
         File file = new File(dir, resource.getPatchSet().getRevision().get().substring(0, 2)
-                + File.separator+ resource.getPatchSet().getRevision().get().substring(2));
+            + File.separator + resource.getPatchSet().getRevision().get().substring(2));
         Calculation calculation = null;
         log.debug("Loading calculation from {}", file);
         try (BufferedReader reader = Files
@@ -85,7 +84,8 @@ public class AdviceCacheImpl implements AdviceCache {
             try {
                 ChangeApi cApi = gApi.changes().id(resource.getChange().getChangeId());
                 ChangeInfo info = cApi.get();
-                double reviewTimeModifier = cfg.getProjectPluginConfigWithInheritance(resource.getChange()
+                double reviewTimeModifier =
+                    cfg.getProjectPluginConfigWithInheritance(resource.getChange()
                         .getProject(), "reviewassistant").getInt("time", "reviewTimeModifier", 100);
                 calculation = ReviewAssistant.calculate(info, reviewTimeModifier / 100);
                 storeCalculation(calculation);

@@ -161,7 +161,8 @@ class ChangeEventListener implements ChangeListener {
                         }
                     });
                 } catch (IOException e) {
-                    log.error("Could not get commit for revision {}: {}", event.patchSet.revision, e);
+                    log.error("Could not get commit for revision {}: {}", event.patchSet.revision,
+                        e);
                 } finally {
                     reviewDb.close();
                 }
