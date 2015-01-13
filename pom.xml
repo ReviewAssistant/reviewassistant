@@ -6,7 +6,7 @@
     <groupId>com.github.nexception.reviewassistant</groupId>
     <artifactId>reviewassistant</artifactId>
     <packaging>jar</packaging>
-    <version>0.3.1-SNAPSHOT</version>
+    <version>0.4</version>
     <name>reviewassistant</name>
 
     <properties>

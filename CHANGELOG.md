@@ -1,6 +1,20 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## 0.4 - 2015-01-13
+### Added
+- ReviewAssistant is now configurable.
+- Maximum reviewers, configuration parameter.
+- Auto add reviewer, configuration parameter.
+- If +2 user is required, configuration parameter.
+- Modifier for total review time, configuration parameter.
+- Load balancing, configuration parameter.
+- Age and limit in the +2 query, configuration parameter.
+
+### Fixed
+- Query only looks for changes with +2 code review.
+- ReviewAssistant will now try to fill with reviewers until maxReviewers is reached.
+
 ## 0.3 - 2015-01-05
 ### Added
 - Automatic adding of reviewer with merge rights.
