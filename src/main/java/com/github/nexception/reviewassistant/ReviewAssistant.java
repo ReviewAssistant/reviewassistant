@@ -135,7 +135,7 @@ public class ReviewAssistant implements Runnable {
      * @return the Calculation object for a review
      */
     public static Calculation calculate(ChangeInfo info, double reviewTimeModifier) {
-        log.debug("Received event: " + info.currentRevision);
+        log.debug("Received event: {}", info.currentRevision);
         Calculation calculation = new Calculation();
         calculation.commitId = info.currentRevision;
         calculation.totalReviewTime = calculateReviewTime(info, reviewTimeModifier);
@@ -218,7 +218,7 @@ public class ReviewAssistant implements Runnable {
             log.error(e.getMessage(), e);
         }
 
-        log.debug("getApprovalAccounts found " + reviewersApproved.size() + " reviewers");
+        log.debug("getApprovalAccounts found {} reviewers", reviewersApproved.size());
 
         try {
             List<Entry<Account, Integer>> approvalAccounts =
@@ -301,7 +301,7 @@ public class ReviewAssistant implements Runnable {
                 }
             }).greatestOf(blameData.entrySet(), maxReviewers * 2);
         //TODO Check if maxReviewers * 2 is sufficient
-        log.debug("getReviewers found " + topReviewers.size() + " reviewers");
+        log.debug("getReviewers found {} reviewers", topReviewers.size());
         return topReviewers;
     }
 
@@ -359,8 +359,6 @@ public class ReviewAssistant implements Runnable {
                 });
             } catch (RestApiException e) {
                 log.error(e.getMessage(), e);
-            } catch (Exception e) {
-                log.error(e.getMessage(), e);
             }
         }
         return modifiableList;
@@ -417,15 +415,49 @@ public class ReviewAssistant implements Runnable {
             }
         }
 
-        Map<Account, AddReason> finalMap = new HashMap<>();
-        Iterator<Entry<Account, Integer>> itr = blameCandidates.iterator();
-        if (!mergeCandidates.isEmpty()) {
-            finalMap.put(mergeCandidates.get(0).getKey(), AddReason.PLUS_TWO);
+        for (Entry<Account, Integer> e : mergeCandidates) {
+            log.debug("Merge candidate: {}, score: {}", e.getKey().getPreferredEmail(),
+                    e.getValue());
         }
-        while (finalMap.size() < maxReviewers && itr.hasNext()) {
-            Account account = itr.next().getKey();
-            if (!finalMap.containsKey(account)) {
-                finalMap.put(account, AddReason.EXPERIENCE);
+
+        for (Entry<Account, Integer> e : blameCandidates) {
+            log.debug("Blame candidate: {}, score: {}", e.getKey().getPreferredEmail(),
+                    e.getValue());
+        }
+
+        Map<Account, AddReason> finalMap = new HashMap<>();
+        if(blameCandidates.size() < maxReviewers) {
+            Iterator<Entry<Account, Integer>> mergeItr = mergeCandidates.iterator();
+            for (Entry<Account, Integer> e : blameCandidates) {
+                finalMap.put(e.getKey(), AddReason.EXPERIENCE);
+                log.debug("Added {} ({})", e.getKey().getPreferredEmail(), AddReason.EXPERIENCE);
+            }
+            boolean plusTwoAdded = false;
+            while (finalMap.size() < maxReviewers && mergeItr.hasNext()) {
+                Account account = mergeItr.next().getKey();
+                if (!finalMap.containsKey(account)) {
+                    finalMap.put(account, AddReason.PLUS_TWO);
+                    log.debug("Added {} ({})", account.getPreferredEmail(), AddReason.PLUS_TWO);
+                    plusTwoAdded = true;
+                }
+            }
+            if (!plusTwoAdded && plusTwoRequired) {
+                finalMap.put(mergeCandidates.get(0).getKey(), AddReason.PLUS_TWO);
+                log.debug("Changed reason for {} to {}",
+                        mergeCandidates.get(0).getKey().getPreferredEmail(), AddReason.PLUS_TWO);
+            }
+        } else {
+            Iterator<Entry<Account, Integer>> blameItr = blameCandidates.iterator();
+            if (!mergeCandidates.isEmpty()) {
+                finalMap.put(mergeCandidates.get(0).getKey(), AddReason.PLUS_TWO);
+                log.debug("Added {} ({})", mergeCandidates.get(0).getKey().getPreferredEmail(), AddReason.PLUS_TWO);
+            }
+            while (finalMap.size() < maxReviewers && blameItr.hasNext()) {
+                Account account = blameItr.next().getKey();
+                if (!finalMap.containsKey(account)) {
+                    finalMap.put(account, AddReason.EXPERIENCE);
+                    log.debug("Added {} ({})", account.getPreferredEmail(), AddReason.EXPERIENCE);
+                }
             }
         }
 
@@ -433,6 +465,5 @@ public class ReviewAssistant implements Runnable {
         realUser = true;
         addReviewers(change, finalMap);
         realUser = false;
-
     }
 }
