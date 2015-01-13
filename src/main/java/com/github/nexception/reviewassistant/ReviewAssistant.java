@@ -52,6 +52,7 @@ enum AddReason {PLUS_TWO, EXPERIENCE}
  */
 public class ReviewAssistant implements Runnable {
 
+    private static final Logger log = LoggerFactory.getLogger(ReviewAssistant.class);
     public static boolean realUser;
     private final AccountByEmailCache emailCache;
     private final AccountCache accountCache;
@@ -60,7 +61,6 @@ public class ReviewAssistant implements Runnable {
     private final PatchSet ps;
     private final Repository repo;
     private final RevCommit commit;
-    private static final Logger log = LoggerFactory.getLogger(ReviewAssistant.class);
     private final Project.NameKey projectName;
     private final GerritApi gApi;
     private final int maxReviewers;
@@ -69,7 +69,6 @@ public class ReviewAssistant implements Runnable {
     private final int plusTwoLimit;
     private final boolean plusTwoRequired;
 
-
     public interface Factory {
         ReviewAssistant create(RevCommit commit, Change change, PatchSet ps, Repository repo,
             Project.NameKey projectName);
@@ -77,8 +76,7 @@ public class ReviewAssistant implements Runnable {
 
     @Inject
     public ReviewAssistant(final PatchListCache patchListCache, final AccountCache accountCache,
-        final GerritApi gApi, final AccountByEmailCache emailCache,
-        final PluginConfigFactory cfg,
+        final GerritApi gApi, final AccountByEmailCache emailCache, final PluginConfigFactory cfg,
         @Assisted final RevCommit commit, @Assisted final Change change,
         @Assisted final PatchSet ps, @Assisted final Repository repo,
         @Assisted final Project.NameKey projectName) {
@@ -190,14 +188,12 @@ public class ReviewAssistant implements Runnable {
     private List<Entry<Account, Integer>> getApprovalAccounts() {
         Map<Account, Integer> reviewersApproved = new HashMap<>();
         try {
-            List<ChangeInfo> infoList =
-                gApi.changes().query(
-                    "status:merged -age:" + plusTwoAge + "weeks limit:" + plusTwoLimit
-                        + " -label:Code-Review=2," + change.getOwner().get()
-                        + " label:Code-Review=2 project:" +
-                        projectName.toString())
-                    .withOptions(ListChangesOption.LABELS, ListChangesOption.DETAILED_ACCOUNTS)
-                    .get();
+            List<ChangeInfo> infoList = gApi.changes().query(
+                "status:merged -age:" + plusTwoAge + "weeks limit:" + plusTwoLimit
+                    + " -label:Code-Review=2," + change.getOwner().get()
+                    + " label:Code-Review=2 project:" +
+                    projectName.toString())
+                .withOptions(ListChangesOption.LABELS, ListChangesOption.DETAILED_ACCOUNTS).get();
             for (ChangeInfo info : infoList) {
                 //TODO Check if this is good enough
                 try {
@@ -294,8 +290,7 @@ public class ReviewAssistant implements Runnable {
 
         List<Entry<Account, Integer>> topReviewers =
             Ordering.from(new Comparator<Entry<Account, Integer>>() {
-                @Override
-                public int compare(Entry<Account, Integer> itemOne,
+                @Override public int compare(Entry<Account, Integer> itemOne,
                     Entry<Account, Integer> itemTwo) {
                     return itemOne.getValue() - itemTwo.getValue();
                 }
@@ -364,8 +359,7 @@ public class ReviewAssistant implements Runnable {
         return modifiableList;
     }
 
-    @Override
-    public void run() {
+    @Override public void run() {
         log.info(
             "CONFIG: maxReviewers: " + maxReviewers + ", enableLoadBalancing: " + loadBalancing +
                 ", plusTwoAge: " + plusTwoAge + ", plusTwoLimit: " + plusTwoLimit
@@ -417,16 +411,16 @@ public class ReviewAssistant implements Runnable {
 
         for (Entry<Account, Integer> e : mergeCandidates) {
             log.debug("Merge candidate: {}, score: {}", e.getKey().getPreferredEmail(),
-                    e.getValue());
+                e.getValue());
         }
 
         for (Entry<Account, Integer> e : blameCandidates) {
             log.debug("Blame candidate: {}, score: {}", e.getKey().getPreferredEmail(),
-                    e.getValue());
+                e.getValue());
         }
 
         Map<Account, AddReason> finalMap = new HashMap<>();
-        if(blameCandidates.size() < maxReviewers) {
+        if (blameCandidates.size() < maxReviewers) {
             Iterator<Entry<Account, Integer>> mergeItr = mergeCandidates.iterator();
             for (Entry<Account, Integer> e : blameCandidates) {
                 finalMap.put(e.getKey(), AddReason.EXPERIENCE);
@@ -444,13 +438,14 @@ public class ReviewAssistant implements Runnable {
             if (!plusTwoAdded && plusTwoRequired) {
                 finalMap.put(mergeCandidates.get(0).getKey(), AddReason.PLUS_TWO);
                 log.debug("Changed reason for {} to {}",
-                        mergeCandidates.get(0).getKey().getPreferredEmail(), AddReason.PLUS_TWO);
+                    mergeCandidates.get(0).getKey().getPreferredEmail(), AddReason.PLUS_TWO);
             }
         } else {
             Iterator<Entry<Account, Integer>> blameItr = blameCandidates.iterator();
             if (!mergeCandidates.isEmpty()) {
                 finalMap.put(mergeCandidates.get(0).getKey(), AddReason.PLUS_TWO);
-                log.debug("Added {} ({})", mergeCandidates.get(0).getKey().getPreferredEmail(), AddReason.PLUS_TWO);
+                log.debug("Added {} ({})", mergeCandidates.get(0).getKey().getPreferredEmail(),
+                    AddReason.PLUS_TWO);
             }
             while (finalMap.size() < maxReviewers && blameItr.hasNext()) {
                 Account account = blameItr.next().getKey();

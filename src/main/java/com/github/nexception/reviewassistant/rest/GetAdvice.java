@@ -14,18 +14,15 @@ import com.google.inject.Singleton;
  * This rest view fetches a calculation and returns it. It is used by the front-end to
  * present the review suggestions to the users.
  */
-@Singleton
-public class GetAdvice implements RestReadView<RevisionResource> {
+@Singleton public class GetAdvice implements RestReadView<RevisionResource> {
 
     private AdviceCache adviceCache;
 
-    @Inject
-    public GetAdvice(AdviceCache adviceCache) {
+    @Inject public GetAdvice(AdviceCache adviceCache) {
         this.adviceCache = adviceCache;
     }
 
-    @Override
-    public Object apply(RevisionResource resource)
+    @Override public Object apply(RevisionResource resource)
         throws AuthException, BadRequestException, ResourceConflictException {
         Calculation calculation = adviceCache.fetchCalculation(resource);
         String advice =

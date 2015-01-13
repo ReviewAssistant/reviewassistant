@@ -37,20 +37,20 @@ class ChangeEventListener implements ChangeListener {
 
     private static final Logger log = LoggerFactory.getLogger(ChangeEventListener.class);
     private final ReviewAssistant.Factory reviewAssistantFactory;
-    private WorkQueue workQueue;
-    private GitRepositoryManager repoManager;
-    private SchemaFactory<ReviewDb> schemaFactory;
     private final ThreadLocalRequestContext tl;
-    private ReviewDb db;
     private final PluginUser pluginUser;
     private final IdentifiedUser.GenericFactory identifiedUserFactory;
     private final PluginConfigFactory cfg;
+    private WorkQueue workQueue;
+    private GitRepositoryManager repoManager;
+    private SchemaFactory<ReviewDb> schemaFactory;
+    private ReviewDb db;
 
     @Inject ChangeEventListener(final ReviewAssistant.Factory reviewAssistantFactory,
         final WorkQueue workQueue, final GitRepositoryManager repoManager,
-        final SchemaFactory<ReviewDb> schemaFactory,
-        final ThreadLocalRequestContext tl, final PluginUser pluginUser,
-        final IdentifiedUser.GenericFactory identifiedUserFactory, final PluginConfigFactory cfg) {
+        final SchemaFactory<ReviewDb> schemaFactory, final ThreadLocalRequestContext tl,
+        final PluginUser pluginUser, final IdentifiedUser.GenericFactory identifiedUserFactory,
+        final PluginConfigFactory cfg) {
         this.workQueue = workQueue;
         this.reviewAssistantFactory = reviewAssistantFactory;
         this.repoManager = repoManager;
@@ -61,8 +61,7 @@ class ChangeEventListener implements ChangeListener {
         this.cfg = cfg;
     }
 
-    @Override
-    public void onChangeEvent(ChangeEvent changeEvent) {
+    @Override public void onChangeEvent(ChangeEvent changeEvent) {
         if (!(changeEvent instanceof PatchSetCreatedEvent)) {
             return;
         }
@@ -118,12 +117,10 @@ class ChangeEventListener implements ChangeListener {
                     final Runnable task =
                         reviewAssistantFactory.create(commit, change, ps, repo, projectName);
                     workQueue.getDefaultQueue().submit(new Runnable() {
-                        @Override
-                        public void run() {
+                        @Override public void run() {
                             RequestContext old = tl.setContext(new RequestContext() {
 
-                                @Override
-                                public CurrentUser getCurrentUser() {
+                                @Override public CurrentUser getCurrentUser() {
                                     if (!ReviewAssistant.realUser) {
                                         return pluginUser;
                                     } else {
@@ -131,11 +128,9 @@ class ChangeEventListener implements ChangeListener {
                                     }
                                 }
 
-                                @Override
-                                public Provider<ReviewDb> getReviewDbProvider() {
+                                @Override public Provider<ReviewDb> getReviewDbProvider() {
                                     return new Provider<ReviewDb>() {
-                                        @Override
-                                        public ReviewDb get() {
+                                        @Override public ReviewDb get() {
                                             if (db == null) {
                                                 try {
                                                     db = schemaFactory.open();
@@ -161,7 +156,8 @@ class ChangeEventListener implements ChangeListener {
                         }
                     });
                 } catch (IOException e) {
-                    log.error("Could not get commit for revision {}: {}", event.patchSet.revision, e);
+                    log.error("Could not get commit for revision {}: {}", event.patchSet.revision,
+                        e);
                 } finally {
                     reviewDb.close();
                 }
