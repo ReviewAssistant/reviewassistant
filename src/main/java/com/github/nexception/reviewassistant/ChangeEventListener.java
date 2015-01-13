@@ -21,9 +21,6 @@ import com.google.gwtorm.server.SchemaFactory;
 import com.google.inject.Inject;
 import com.google.inject.Provider;
 import com.google.inject.ProvisionException;
-import org.eclipse.jgit.errors.IncorrectObjectTypeException;
-import org.eclipse.jgit.errors.MissingObjectException;
-import org.eclipse.jgit.errors.RepositoryNotFoundException;
 import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.revwalk.RevCommit;
@@ -70,7 +67,7 @@ class ChangeEventListener implements ChangeListener {
             return;
         }
         PatchSetCreatedEvent event = (PatchSetCreatedEvent) changeEvent;
-        log.debug("Received new commit: " + event.patchSet.revision);
+        log.debug("Received new commit: {}", event.patchSet.revision);
 
         Project.NameKey projectName = new Project.NameKey(event.change.project);
 
@@ -81,7 +78,7 @@ class ChangeEventListener implements ChangeListener {
                 cfg.getProjectPluginConfigWithInheritance(projectName, "reviewassistant")
                     .getBoolean("reviewers", "autoAddReviewers", true);
         } catch (NoSuchProjectException e) {
-            log.error(e.getMessage(), e);
+            log.error("Could not find project {}", projectName);
         }
         log.debug(
             autoAddReviewers ? "autoAddReviewers is enabled" : "autoAddReviewers is disabled");
@@ -89,17 +86,14 @@ class ChangeEventListener implements ChangeListener {
             Repository repo;
             try {
                 repo = repoManager.openRepository(projectName);
-            } catch (RepositoryNotFoundException e) {
-                log.error(e.getMessage(), e);
-                return;
             } catch (IOException e) {
-                log.error(e.getMessage(), e);
+                log.error("Could not open repository for {}", projectName);
                 return;
             }
 
             final ReviewDb reviewDb;
             final RevWalk walk = new RevWalk(repo);
-
+            
             try {
                 reviewDb = schemaFactory.open();
                 try {
@@ -108,13 +102,13 @@ class ChangeEventListener implements ChangeListener {
                         new PatchSet.Id(changeId, Integer.parseInt(event.patchSet.number));
                     PatchSet ps = reviewDb.patchSets().get(psId);
                     if (ps == null) {
-                        log.warn("Could not find patch set " + psId.get());
+                        log.warn("Could not find patch set {}", psId.get());
                         return;
                     }
                     // psId.getParentKey = changeID
                     final Change change = reviewDb.changes().get(psId.getParentKey());
                     if (change == null) {
-                        log.warn("Could not find change " + psId.getParentKey());
+                        log.warn("Could not find change {}", psId.getParentKey());
                         return;
                     }
 
@@ -166,17 +160,13 @@ class ChangeEventListener implements ChangeListener {
                             }
                         }
                     });
-                } catch (IncorrectObjectTypeException e) {
-                    log.error(e.getMessage(), e);
-                } catch (MissingObjectException e) {
-                    log.error(e.getMessage(), e);
-                } catch (IOException e) {
-                    log.error(e.getMessage(), e);
+                } catch (IOException e) { //get commit
+                    log.error("Could not get commit for revision {}: {}", event.patchSet.revision, e);
                 } finally {
                     reviewDb.close();
                 }
             } catch (OrmException e) {
-                log.error(e.getMessage(), e);
+                log.error("Could not open review database: {}", e);
             } finally {
                 walk.release();
                 repo.close();
