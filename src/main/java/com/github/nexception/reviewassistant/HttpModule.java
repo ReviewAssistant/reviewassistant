@@ -5,9 +5,9 @@ import com.google.gerrit.extensions.webui.JavaScriptPlugin;
 import com.google.gerrit.extensions.webui.WebUiPlugin;
 import com.google.gerrit.httpd.plugins.HttpPluginModule;
 
-public class HttpModule extends HttpPluginModule{
-    @Override
-    protected void configureServlets() {
-        DynamicSet.bind(binder(), WebUiPlugin.class).toInstance(new JavaScriptPlugin("reviewassistant.js"));
+public class HttpModule extends HttpPluginModule {
+    @Override protected void configureServlets() {
+        DynamicSet.bind(binder(), WebUiPlugin.class)
+            .toInstance(new JavaScriptPlugin("reviewassistant.js"));
     }
 }
