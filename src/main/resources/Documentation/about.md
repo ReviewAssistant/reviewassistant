@@ -4,4 +4,5 @@ The review assistant plugin gives advice on how to perform code reviews in an ef
 
 - Time estimations: Reviewers get advice on how much time that should be put into reviewing the current patch.
 - Review sessions: Reviewers get advice on how to partition the review time.
-- Auto add reviewers. Reviewers are auto added based on git blame.
+- Auto add reviewers based on git blame.
+- Auto add one reviewer that has +2'd a change in the project previously.
