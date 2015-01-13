@@ -13,7 +13,7 @@ public class Module extends FactoryModule {
     @Override
     protected void configure() {
         DynamicSet.bind(binder(), ChangeListener.class).to(ChangeEventListener.class);
-        bind(Cache.class).to(SimpleCache.class);
+        bind(AdviceCache.class).to(AdviceCacheImpl.class);
         factory(ReviewAssistant.Factory.class);
 
         install(new RestApiModule() {
