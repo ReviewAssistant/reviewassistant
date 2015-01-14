@@ -10,12 +10,13 @@ Other projects can then override the configuration in their own
 
 ```
   [reviewers]
+    autoAddReviewers = true
     maxReviewers = 3
     enableLoadBalancing = false
+    plusTwoRequired = true
     plusTwoAge = 8
     plusTwoLimit = 10
-    plusTwoRequired = true
-    autoAddReviewers = true
+
 
   [time]
     reviewTimeModifier = 100
