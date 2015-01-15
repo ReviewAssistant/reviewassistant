@@ -1,4 +1,4 @@
-package com.github.nexception.reviewassistant;
+package com.github.reviewassistant.reviewassistant;
 
 import com.google.gerrit.extensions.registration.DynamicSet;
 import com.google.gerrit.extensions.webui.JavaScriptPlugin;

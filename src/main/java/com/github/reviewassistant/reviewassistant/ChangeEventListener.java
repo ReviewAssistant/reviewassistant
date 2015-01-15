@@ -1,4 +1,4 @@
-package com.github.nexception.reviewassistant;
+package com.github.reviewassistant.reviewassistant;
 
 import com.google.gerrit.common.ChangeListener;
 import com.google.gerrit.reviewdb.client.Change;

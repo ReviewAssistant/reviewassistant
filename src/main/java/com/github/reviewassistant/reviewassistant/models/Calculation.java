@@ -1,4 +1,4 @@
-package com.github.nexception.reviewassistant.models;
+package com.github.reviewassistant.reviewassistant.models;
 
 /**
  * A class that represents a ReviewAssistant calculation.

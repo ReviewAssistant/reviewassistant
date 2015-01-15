@@ -1,6 +1,6 @@
-package com.github.nexception.reviewassistant;
+package com.github.reviewassistant.reviewassistant;
 
-import com.github.nexception.reviewassistant.rest.GetAdvice;
+import com.github.reviewassistant.reviewassistant.rest.GetAdvice;
 import com.google.gerrit.common.ChangeListener;
 import com.google.gerrit.extensions.registration.DynamicSet;
 import com.google.gerrit.extensions.restapi.RestApiModule;
