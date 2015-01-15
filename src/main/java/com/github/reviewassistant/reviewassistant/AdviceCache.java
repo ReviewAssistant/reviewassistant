@@ -1,6 +1,6 @@
-package com.github.nexception.reviewassistant;
+package com.github.reviewassistant.reviewassistant;
 
-import com.github.nexception.reviewassistant.models.Calculation;
+import com.github.reviewassistant.reviewassistant.models.Calculation;
 import com.google.gerrit.server.change.RevisionResource;
 
 /**

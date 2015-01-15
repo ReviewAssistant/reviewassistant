@@ -1,7 +1,7 @@
-package com.github.nexception.reviewassistant.rest;
+package com.github.reviewassistant.reviewassistant.rest;
 
-import com.github.nexception.reviewassistant.AdviceCache;
-import com.github.nexception.reviewassistant.models.Calculation;
+import com.github.reviewassistant.reviewassistant.AdviceCache;
+import com.github.reviewassistant.reviewassistant.models.Calculation;
 import com.google.gerrit.extensions.restapi.AuthException;
 import com.google.gerrit.extensions.restapi.BadRequestException;
 import com.google.gerrit.extensions.restapi.ResourceConflictException;
