@@ -6,7 +6,7 @@
     <groupId>com.github.reviewassistant.reviewassistant</groupId>
     <artifactId>reviewassistant</artifactId>
     <packaging>jar</packaging>
-    <version>0.4</version>
+    <version>0.4.1-SNAPSHOT</version>
     <name>reviewassistant</name>
 
     <properties>

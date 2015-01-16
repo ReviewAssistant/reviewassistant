@@ -16,9 +16,9 @@ public interface AdviceCache {
     public void storeCalculation(Calculation calculation);
 
     /**
-     * Returns the calculation object with the matching RevisionResource.
+     * Returns the calculation object for the matching RevisionResource.
      *
-     * @param resource the RevisionResource to fetch calculation from cache
+     * @param resource the RevisionResource to fetch calculation for from the cache
      * @return a Calculation object if one is found, null otherwise
      */
     public Calculation fetchCalculation(RevisionResource resource);
