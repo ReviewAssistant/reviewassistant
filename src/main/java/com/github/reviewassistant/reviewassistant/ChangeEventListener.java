@@ -1,6 +1,6 @@
 package com.github.reviewassistant.reviewassistant;
 
-import com.google.gerrit.common.ChangeListener;
+import com.google.gerrit.common.EventListener;
 import com.google.gerrit.reviewdb.client.Change;
 import com.google.gerrit.reviewdb.client.PatchSet;
 import com.google.gerrit.reviewdb.client.Project;
@@ -9,7 +9,7 @@ import com.google.gerrit.server.CurrentUser;
 import com.google.gerrit.server.IdentifiedUser;
 import com.google.gerrit.server.PluginUser;
 import com.google.gerrit.server.config.PluginConfigFactory;
-import com.google.gerrit.server.events.ChangeEvent;
+import com.google.gerrit.server.events.Event;
 import com.google.gerrit.server.events.PatchSetCreatedEvent;
 import com.google.gerrit.server.git.GitRepositoryManager;
 import com.google.gerrit.server.git.WorkQueue;
@@ -21,6 +21,7 @@ import com.google.gwtorm.server.SchemaFactory;
 import com.google.inject.Inject;
 import com.google.inject.Provider;
 import com.google.inject.ProvisionException;
+
 import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.revwalk.RevCommit;
@@ -33,7 +34,7 @@ import java.io.IOException;
 /**
  * The change event listener listens to new commits and passes them on to the algorithm.
  */
-class ChangeEventListener implements ChangeListener {
+class ChangeEventListener implements EventListener {
 
     private static final Logger log = LoggerFactory.getLogger(ChangeEventListener.class);
     private final ReviewAssistant.Factory reviewAssistantFactory;
@@ -61,7 +62,7 @@ class ChangeEventListener implements ChangeListener {
         this.cfg = cfg;
     }
 
-    @Override public void onChangeEvent(ChangeEvent changeEvent) {
+    @Override public void onEvent(Event changeEvent) {
         if (!(changeEvent instanceof PatchSetCreatedEvent)) {
             return;
         }
