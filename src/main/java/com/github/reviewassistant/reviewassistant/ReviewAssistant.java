@@ -336,7 +336,7 @@ public class ReviewAssistant implements Runnable {
      * @param list the list to be sorted
      * @return a sorted list
      */
-    private List sortByOpenChanges(List<Entry<Account, Integer>> list) {
+    private List<Entry<Account, Integer>> sortByOpenChanges(List<Entry<Account, Integer>> list) {
         //TODO: There is probably room for improvement here
         ArrayList<Entry<Account, Integer>> modifiableList = new ArrayList<>(list);
         for (int i = 0; i < modifiableList.size(); i++) {
