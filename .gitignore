@@ -12,3 +12,8 @@
 # Buck stuff
 bucklets
 .buckversion
+
+# Eclipse
+.classpath
+.project
+.settings
