@@ -5,7 +5,7 @@ gerrit_plugin(
   srcs = glob(['src/main/java/**/*.java']),
   resources = glob(['src/main/**/*']),
   manifest_entries = [
-    'Implementation-Title: Reviewer Assistant',
+    'Implementation-Title: Review Assistant',
     'Implementation-URL: https://github.com/reviewassistant/reviewassistant',
     'Gerrit-PluginName: reviewassistant',
     'Gerrit-Module: com.github.reviewassistant.reviewassistant.Module',
