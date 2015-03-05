@@ -1,6 +1,10 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## 0.4.1 - 2015-01-14
+### Added
+- Build documentation.
+
 ## 0.4 - 2015-01-13
 ### Added
 - ReviewAssistant is now configurable.

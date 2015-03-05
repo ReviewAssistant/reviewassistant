@@ -3,15 +3,15 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>com.github.nexception.reviewassistant</groupId>
+    <groupId>com.github.reviewassistant.reviewassistant</groupId>
     <artifactId>reviewassistant</artifactId>
     <packaging>jar</packaging>
-    <version>0.4</version>
+    <version>0.4.1-SNAPSHOT</version>
     <name>reviewassistant</name>
 
     <properties>
         <Gerrit-ApiType>plugin</Gerrit-ApiType>
-        <Gerrit-ApiVersion>2.10-rc0</Gerrit-ApiVersion>
+        <Gerrit-ApiVersion>2.11-SNAPSHOT</Gerrit-ApiVersion>
     </properties>
 
     <build>
@@ -24,11 +24,11 @@
                     <archive>
                         <manifestEntries>
                             <Gerrit-PluginName>reviewassistant</Gerrit-PluginName>
-                            <Gerrit-Module>com.github.nexception.reviewassistant.Module</Gerrit-Module>
-                            <Gerrit-HttpModule>com.github.nexception.reviewassistant.HttpModule</Gerrit-HttpModule>
+                            <Gerrit-Module>com.github.reviewassistant.reviewassistant.Module</Gerrit-Module>
+                            <Gerrit-HttpModule>com.github.reviewassistant.reviewassistant.HttpModule</Gerrit-HttpModule>
 
-                            <Implementation-Vendor>Nexception</Implementation-Vendor>
-                            <Implementation-URL>https://github.com/Nexception/reviewassistant/</Implementation-URL>
+                            <Implementation-Vendor>ReviewAssistant</Implementation-Vendor>
+                            <Implementation-URL>https://github.com/reviewassistant/reviewassistant/</Implementation-URL>
 
                             <Implementation-Title>${Gerrit-ApiType} ${project.artifactId}</Implementation-Title>
                             <Implementation-Version>${project.version}</Implementation-Version>

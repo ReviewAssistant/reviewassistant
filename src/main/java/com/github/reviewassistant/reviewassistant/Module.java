@@ -1,7 +1,7 @@
-package com.github.nexception.reviewassistant;
+package com.github.reviewassistant.reviewassistant;
 
-import com.github.nexception.reviewassistant.rest.GetAdvice;
-import com.google.gerrit.common.ChangeListener;
+import com.github.reviewassistant.reviewassistant.rest.GetAdvice;
+import com.google.gerrit.common.EventListener;
 import com.google.gerrit.extensions.registration.DynamicSet;
 import com.google.gerrit.extensions.restapi.RestApiModule;
 import com.google.gerrit.server.config.FactoryModule;
@@ -11,7 +11,7 @@ import static com.google.gerrit.server.change.RevisionResource.REVISION_KIND;
 public class Module extends FactoryModule {
 
     @Override protected void configure() {
-        DynamicSet.bind(binder(), ChangeListener.class).to(ChangeEventListener.class);
+        DynamicSet.bind(binder(), EventListener.class).to(ChangeEventListener.class);
         bind(AdviceCache.class).to(AdviceCacheImpl.class);
         factory(ReviewAssistant.Factory.class);
 

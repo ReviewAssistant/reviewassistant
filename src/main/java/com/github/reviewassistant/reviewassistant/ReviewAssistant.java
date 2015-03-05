@@ -1,11 +1,11 @@
-package com.github.nexception.reviewassistant;
+package com.github.reviewassistant.reviewassistant;
 
-import com.github.nexception.reviewassistant.models.Calculation;
+import com.github.reviewassistant.reviewassistant.models.Calculation;
 import com.google.common.collect.Ordering;
 import com.google.gerrit.extensions.api.GerritApi;
 import com.google.gerrit.extensions.api.changes.ChangeApi;
+import com.google.gerrit.extensions.client.ListChangesOption;
 import com.google.gerrit.extensions.common.ChangeInfo;
-import com.google.gerrit.extensions.common.ListChangesOption;
 import com.google.gerrit.extensions.restapi.RestApiException;
 import com.google.gerrit.reviewdb.client.Account;
 import com.google.gerrit.reviewdb.client.Change;
@@ -336,7 +336,7 @@ public class ReviewAssistant implements Runnable {
      * @param list the list to be sorted
      * @return a sorted list
      */
-    private List sortByOpenChanges(List<Entry<Account, Integer>> list) {
+    private List<Entry<Account, Integer>> sortByOpenChanges(List<Entry<Account, Integer>> list) {
         //TODO: There is probably room for improvement here
         ArrayList<Entry<Account, Integer>> modifiableList = new ArrayList<>(list);
         for (int i = 0; i < modifiableList.size(); i++) {
