@@ -92,9 +92,7 @@ class ChangeEventListener implements EventListener {
             }
 
             final ReviewDb reviewDb;
-            final RevWalk walk = new RevWalk(repo);
-
-            try {
+            try (RevWalk walk = new RevWalk(repo)) {
                 reviewDb = schemaFactory.open();
                 try {
                     Change.Id changeId = new Change.Id(Integer.parseInt(event.change.number));
@@ -165,7 +163,6 @@ class ChangeEventListener implements EventListener {
             } catch (OrmException e) {
                 log.error("Could not open review database: {}", e);
             } finally {
-                walk.release();
                 repo.close();
             }
         }
