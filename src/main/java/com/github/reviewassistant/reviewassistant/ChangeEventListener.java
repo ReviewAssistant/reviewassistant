@@ -83,90 +83,82 @@ class ChangeEventListener implements EventListener {
         log.debug(
             autoAddReviewers ? "autoAddReviewers is enabled" : "autoAddReviewers is disabled");
         if (autoAddReviewers) {
-            Repository repo;
-            try {
-                repo = repoManager.openRepository(projectName);
+            try (Repository repo = repoManager.openRepository(projectName)) {
+                final ReviewDb reviewDb;
+                try (RevWalk walk = new RevWalk(repo)) {
+                    reviewDb = schemaFactory.open();
+                    try {
+                        Change.Id changeId = new Change.Id(Integer.parseInt(event.change.number));
+                        PatchSet.Id psId =
+                            new PatchSet.Id(changeId, Integer.parseInt(event.patchSet.number));
+                        PatchSet ps = reviewDb.patchSets().get(psId);
+                        if (ps == null) {
+                            log.warn("Could not find patch set {}", psId.get());
+                            return;
+                        }
+                        // psId.getParentKey = changeID
+                        final Change change = reviewDb.changes().get(psId.getParentKey());
+                        if (change == null) {
+                            log.warn("Could not find change {}", psId.getParentKey());
+                            return;
+                        }
+
+                        RevCommit commit =
+                            walk.parseCommit(ObjectId.fromString(event.patchSet.revision));
+
+                        final Runnable task =
+                            reviewAssistantFactory.create(commit, change, ps, repo, projectName);
+                        workQueue.getDefaultQueue().submit(new Runnable() {
+                            @Override public void run() {
+                                RequestContext old = tl.setContext(new RequestContext() {
+
+                                    @Override public CurrentUser getCurrentUser() {
+                                        if (!ReviewAssistant.realUser) {
+                                            return pluginUser;
+                                        } else {
+                                            return identifiedUserFactory.create(change.getOwner());
+                                        }
+                                    }
+
+                                    @Override public Provider<ReviewDb> getReviewDbProvider() {
+                                        return new Provider<ReviewDb>() {
+                                            @Override public ReviewDb get() {
+                                                if (db == null) {
+                                                    try {
+                                                        db = schemaFactory.open();
+                                                    } catch (OrmException e) {
+                                                        throw new ProvisionException(
+                                                            "Cannot open ReviewDb", e);
+                                                    }
+                                                }
+                                                return db;
+                                            }
+                                        };
+                                    }
+                                });
+                                try {
+                                    task.run();
+                                } finally {
+                                    tl.setContext(old);
+                                    if (db != null) {
+                                        db.close();
+                                        db = null;
+                                    }
+                                }
+                            }
+                        });
+                    } catch (IOException e) {
+                        log.error("Could not get commit for revision {}: {}", event.patchSet.revision,
+                            e);
+                    } finally {
+                        reviewDb.close();
+                    }
+                } catch (OrmException e) {
+                    log.error("Could not open review database: {}", e);
+                }
             } catch (IOException e) {
                 log.error("Could not open repository for {}", projectName);
                 return;
-            }
-
-            final ReviewDb reviewDb;
-            final RevWalk walk = new RevWalk(repo);
-
-            try {
-                reviewDb = schemaFactory.open();
-                try {
-                    Change.Id changeId = new Change.Id(Integer.parseInt(event.change.number));
-                    PatchSet.Id psId =
-                        new PatchSet.Id(changeId, Integer.parseInt(event.patchSet.number));
-                    PatchSet ps = reviewDb.patchSets().get(psId);
-                    if (ps == null) {
-                        log.warn("Could not find patch set {}", psId.get());
-                        return;
-                    }
-                    // psId.getParentKey = changeID
-                    final Change change = reviewDb.changes().get(psId.getParentKey());
-                    if (change == null) {
-                        log.warn("Could not find change {}", psId.getParentKey());
-                        return;
-                    }
-
-                    RevCommit commit =
-                        walk.parseCommit(ObjectId.fromString(event.patchSet.revision));
-
-                    final Runnable task =
-                        reviewAssistantFactory.create(commit, change, ps, repo, projectName);
-                    workQueue.getDefaultQueue().submit(new Runnable() {
-                        @Override public void run() {
-                            RequestContext old = tl.setContext(new RequestContext() {
-
-                                @Override public CurrentUser getCurrentUser() {
-                                    if (!ReviewAssistant.realUser) {
-                                        return pluginUser;
-                                    } else {
-                                        return identifiedUserFactory.create(change.getOwner());
-                                    }
-                                }
-
-                                @Override public Provider<ReviewDb> getReviewDbProvider() {
-                                    return new Provider<ReviewDb>() {
-                                        @Override public ReviewDb get() {
-                                            if (db == null) {
-                                                try {
-                                                    db = schemaFactory.open();
-                                                } catch (OrmException e) {
-                                                    throw new ProvisionException(
-                                                        "Cannot open ReviewDb", e);
-                                                }
-                                            }
-                                            return db;
-                                        }
-                                    };
-                                }
-                            });
-                            try {
-                                task.run();
-                            } finally {
-                                tl.setContext(old);
-                                if (db != null) {
-                                    db.close();
-                                    db = null;
-                                }
-                            }
-                        }
-                    });
-                } catch (IOException e) {
-                    log.error("Could not get commit for revision {}: {}", event.patchSet.revision,
-                        e);
-                } finally {
-                    reviewDb.close();
-                }
-            } catch (OrmException e) {
-                log.error("Could not open review database: {}", e);
-            } finally {
-                walk.release();
-                repo.close();
             }
         }
     }
