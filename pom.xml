@@ -11,7 +11,7 @@
 
     <properties>
         <Gerrit-ApiType>plugin</Gerrit-ApiType>
-        <Gerrit-ApiVersion>2.11-SNAPSHOT</Gerrit-ApiVersion>
+        <Gerrit-ApiVersion>2.11</Gerrit-ApiVersion>
     </properties>
 
     <build>
