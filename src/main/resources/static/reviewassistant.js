@@ -1,5 +1,8 @@
 Gerrit.install(function(self) {
     function print (c, r) {
+        if (c.current_revision != r.name) {
+            return;
+        }
         var doc = document;
         var change_plugins = document.getElementById('change_plugins');
         var container = doc.createElement('div');
