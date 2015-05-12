@@ -45,7 +45,10 @@ public class AdviceCacheImpl implements AdviceCache {
             calculation.commitId.substring(0, 2) + File.separator + calculation.commitId
                 .substring(2));
         log.debug("Writing calculation to {}", file);
-        file.getParentFile().mkdirs();
+        if (!file.getParentFile().exists() && !file.getParentFile().mkdirs()) {
+            log.error("Failed to create directory for file {}", file);
+            return;
+        }
         try (BufferedWriter writer = Files
             .newBufferedWriter(file.toPath(), Charset.forName("UTF-8"))) {
             Gson gson = new Gson();
