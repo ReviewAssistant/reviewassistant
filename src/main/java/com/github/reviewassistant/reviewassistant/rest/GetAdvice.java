@@ -2,9 +2,7 @@ package com.github.reviewassistant.reviewassistant.rest;
 
 import com.github.reviewassistant.reviewassistant.AdviceCache;
 import com.github.reviewassistant.reviewassistant.models.Calculation;
-import com.google.gerrit.extensions.restapi.AuthException;
-import com.google.gerrit.extensions.restapi.BadRequestException;
-import com.google.gerrit.extensions.restapi.ResourceConflictException;
+import com.google.gerrit.extensions.restapi.RestApiException;
 import com.google.gerrit.extensions.restapi.RestReadView;
 import com.google.gerrit.server.change.RevisionResource;
 import com.google.inject.Inject;
@@ -22,34 +20,34 @@ import com.google.inject.Singleton;
         this.adviceCache = adviceCache;
     }
 
-    @Override public Object apply(RevisionResource resource)
-        throws AuthException, BadRequestException, ResourceConflictException {
+    @Override public String apply(RevisionResource resource) throws RestApiException {
         Calculation calculation = adviceCache.fetchCalculation(resource);
-        String advice =
-            "<div id=\"reviewAssistant\" style=\"padding-top: 10px;\" ><strong>ReviewAssistant</strong>";
-        if (calculation != null) {
-            advice += "<div>Reviewers should spend <strong>";
-            if (calculation.hours == 1) {
-                advice += calculation.hours + " hour";
-            } else if (calculation.hours > 1) {
-                advice += calculation.hours + " hours";
-            }
-            if (calculation.hours > 0 && calculation.minutes > 0) {
-                advice += " and ";
-            }
-            if (calculation.minutes > 0) {
-                advice += calculation.minutes + " minutes";
-            }
-            advice += "</strong> reviewing this change.</div>";
-            if (calculation.hours >= 1) {
-                advice += "<div>This should be split up in <strong>" + calculation.sessions +
-                    " to " + (calculation.sessions + 1) + " sessions</strong>.</div>";
-            }
-        } else {
-            advice += "<div>Could not get advice for this change.</div>";
+        if (calculation == null) {
+            return "Could not get advice for this change.";
+        }
+        StringBuilder advice = new StringBuilder("Reviewers should spend <strong>");
+        if (calculation.hours >= 1) {
+            advice.append(calculation.hours)
+              .append(" hour")
+              .append(calculation.hours > 1 ? "s" : "");
+        }
+        if (calculation.hours > 0 && calculation.minutes > 0) {
+            advice.append(" and ");
+        }
+        if (calculation.minutes > 0) {
+            advice.append(calculation.minutes)
+              .append(" minute")
+              .append(calculation.minutes > 1 ? "s" : "");
+        }
+        advice.append("</strong> reviewing this change.");
+        if (calculation.hours >= 1) {
+            advice.append("<p>This should be split up in <strong>")
+              .append(calculation.sessions)
+              .append(" to ")
+              .append(calculation.sessions + 1)
+              .append(" sessions</strong>.");
         }
 
-        advice += "</div>";
-        return advice;
+        return advice.toString();
     }
 }
