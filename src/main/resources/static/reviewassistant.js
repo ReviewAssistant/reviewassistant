@@ -1,6 +1,6 @@
 Gerrit.install(function(self) {
     function print (c, r) {
-        if (c.current_revision != r.name) {
+        if ((c.status != 'NEW') || (c.current_revision != r.name)) {
             return;
         }
         var doc = document;
