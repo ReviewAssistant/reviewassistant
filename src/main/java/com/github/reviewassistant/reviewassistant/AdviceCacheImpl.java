@@ -73,9 +73,7 @@ public class AdviceCacheImpl implements AdviceCache {
             calculation = gson.fromJson(reader.readLine(), Calculation.class);
             log.info("Returning Calculation {}", calculation.toString());
         } catch (IOException e) {
-            log.error("Could not read calculation file for {}",
-                resource.getPatchSet().getRevision().get());
-            log.error(e.toString());
+            // Ignore
         }
 
         if (calculation == null || calculation.totalReviewTime == 0) {
