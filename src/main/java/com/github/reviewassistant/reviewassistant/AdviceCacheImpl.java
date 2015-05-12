@@ -40,10 +40,13 @@ public class AdviceCacheImpl implements AdviceCache {
         this.cfg = cfg;
     }
 
+    private File getCalculationFile(String revision) {
+        return new File(dir,
+            revision.substring(0, 2) + File.separator + revision.substring(2));
+    }
+
     @Override public void storeCalculation(Calculation calculation) {
-        File file = new File(dir,
-            calculation.commitId.substring(0, 2) + File.separator + calculation.commitId
-                .substring(2));
+        File file = getCalculationFile(calculation.commitId);
         log.debug("Writing calculation to {}", file);
         if (!file.getParentFile().exists() && !file.getParentFile().mkdirs()) {
             log.error("Failed to create directory for file {}", file);
@@ -65,9 +68,8 @@ public class AdviceCacheImpl implements AdviceCache {
     }
 
     @Override public Calculation fetchCalculation(RevisionResource resource) {
-        File file = new File(dir,
-            resource.getPatchSet().getRevision().get().substring(0, 2) + File.separator + resource
-                .getPatchSet().getRevision().get().substring(2));
+        File file =
+            getCalculationFile(resource.getPatchSet().getRevision().get());
         Calculation calculation = null;
         log.debug("Loading calculation from {}", file);
         try (BufferedReader reader = Files
