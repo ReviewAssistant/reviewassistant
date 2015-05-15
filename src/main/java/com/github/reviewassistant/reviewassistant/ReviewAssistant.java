@@ -377,13 +377,11 @@ public class ReviewAssistant implements Runnable {
             return;
         }
 
-        List<Entry<Account, Integer>> mergeCandidates;
+        List<Entry<Account, Integer>> mergeCandidates = new ArrayList<>();
         if (plusTwoRequired) {
-            mergeCandidates = getApprovalAccounts();
-        } else {
-            //TODO Fugly
-            mergeCandidates = new ArrayList<>();
+            mergeCandidates.addAll(getApprovalAccounts());
         }
+
         List<Entry<Account, Integer>> blameCandidates = new LinkedList<>();
         for (PatchListEntry entry : patchList.getPatches()) {
             /*
