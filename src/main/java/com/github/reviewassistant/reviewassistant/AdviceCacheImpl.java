@@ -2,6 +2,7 @@ package com.github.reviewassistant.reviewassistant;
 
 import com.github.reviewassistant.reviewassistant.models.Calculation;
 import com.google.gerrit.extensions.annotations.PluginData;
+import com.google.gerrit.extensions.annotations.PluginName;
 import com.google.gerrit.extensions.api.GerritApi;
 import com.google.gerrit.extensions.api.changes.ChangeApi;
 import com.google.gerrit.extensions.common.ChangeInfo;
@@ -11,6 +12,7 @@ import com.google.gerrit.server.config.PluginConfigFactory;
 import com.google.gerrit.server.project.NoSuchProjectException;
 import com.google.gson.Gson;
 import com.google.inject.Inject;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -30,14 +32,20 @@ import java.nio.file.Files;
 public class AdviceCacheImpl implements AdviceCache {
 
     private static final Logger log = LoggerFactory.getLogger(AdviceCacheImpl.class);
-    private File dir;
-    private GerritApi gApi;
-    private PluginConfigFactory cfg;
+    private final File dir;
+    private final GerritApi gApi;
+    private final PluginConfigFactory cfg;
+    private final String pluginName;
 
-    @Inject AdviceCacheImpl(@PluginData File dir, GerritApi gApi, PluginConfigFactory cfg) {
+    @Inject
+    AdviceCacheImpl(@PluginData File dir,
+        GerritApi gApi,
+        PluginConfigFactory cfg,
+        @PluginName String pluginName) {
         this.dir = dir;
         this.gApi = gApi;
         this.cfg = cfg;
+        this.pluginName = pluginName;
     }
 
     private File getCalculationFile(String revision) {
@@ -89,7 +97,7 @@ public class AdviceCacheImpl implements AdviceCache {
                 ChangeInfo info = cApi.get();
                 double reviewTimeModifier =
                     cfg.getProjectPluginConfigWithInheritance(resource.getChange().getProject(),
-                        "reviewassistant").getInt("time", "reviewTimeModifier", 100);
+                        pluginName).getInt("time", "reviewTimeModifier", 100);
                 calculation = ReviewAssistant.calculate(info, reviewTimeModifier / 100);
                 storeCalculation(calculation);
             } catch (RestApiException e) {

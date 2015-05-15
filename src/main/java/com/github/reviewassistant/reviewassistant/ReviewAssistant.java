@@ -2,6 +2,7 @@ package com.github.reviewassistant.reviewassistant;
 
 import com.github.reviewassistant.reviewassistant.models.Calculation;
 import com.google.common.collect.Ordering;
+import com.google.gerrit.extensions.annotations.PluginName;
 import com.google.gerrit.extensions.api.GerritApi;
 import com.google.gerrit.extensions.api.changes.ChangeApi;
 import com.google.gerrit.extensions.client.ListChangesOption;
@@ -87,6 +88,7 @@ public class ReviewAssistant implements Runnable {
         GerritApi gApi,
         AccountByEmailCache emailCache,
         PluginConfigFactory cfg,
+        @PluginName String pluginName,
         @Assisted RevCommit commit,
         @Assisted Change change,
         @Assisted PatchSet ps,
@@ -104,7 +106,7 @@ public class ReviewAssistant implements Runnable {
 
       Config pluginConfig = null;
       try {
-        pluginConfig = cfg.getProjectPluginConfigWithInheritance(projectName, "reviewassistant");
+        pluginConfig = cfg.getProjectPluginConfigWithInheritance(projectName, pluginName);
       } catch (NoSuchProjectException e) {
         log.error(e.getMessage(), e);
       }
