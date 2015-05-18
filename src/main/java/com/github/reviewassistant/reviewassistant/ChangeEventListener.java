@@ -1,6 +1,7 @@
 package com.github.reviewassistant.reviewassistant;
 
 import com.google.gerrit.common.EventListener;
+import com.google.gerrit.extensions.annotations.PluginName;
 import com.google.gerrit.reviewdb.client.Change;
 import com.google.gerrit.reviewdb.client.PatchSet;
 import com.google.gerrit.reviewdb.client.Project;
@@ -42,6 +43,7 @@ class ChangeEventListener implements EventListener {
     private final PluginUser pluginUser;
     private final IdentifiedUser.GenericFactory identifiedUserFactory;
     private final PluginConfigFactory cfg;
+    private final String pluginName;
     private WorkQueue workQueue;
     private GitRepositoryManager repoManager;
     private SchemaFactory<ReviewDb> schemaFactory;
@@ -51,7 +53,7 @@ class ChangeEventListener implements EventListener {
         final WorkQueue workQueue, final GitRepositoryManager repoManager,
         final SchemaFactory<ReviewDb> schemaFactory, final ThreadLocalRequestContext tl,
         final PluginUser pluginUser, final IdentifiedUser.GenericFactory identifiedUserFactory,
-        final PluginConfigFactory cfg) {
+        final PluginConfigFactory cfg, @PluginName String pluginName) {
         this.workQueue = workQueue;
         this.reviewAssistantFactory = reviewAssistantFactory;
         this.repoManager = repoManager;
@@ -60,6 +62,7 @@ class ChangeEventListener implements EventListener {
         this.pluginUser = pluginUser;
         this.identifiedUserFactory = identifiedUserFactory;
         this.cfg = cfg;
+        this.pluginName = pluginName;
     }
 
     @Override public void onEvent(Event changeEvent) {
@@ -75,7 +78,7 @@ class ChangeEventListener implements EventListener {
         try {
             log.debug("Checking if autoAddReviewers is enabled");
             autoAddReviewers =
-                cfg.getProjectPluginConfigWithInheritance(projectName, "reviewassistant")
+                cfg.getProjectPluginConfigWithInheritance(projectName, pluginName)
                     .getBoolean("reviewers", "autoAddReviewers", true);
         } catch (NoSuchProjectException e) {
             log.error("Could not find project {}", projectName);

@@ -2,6 +2,7 @@ package com.github.reviewassistant.reviewassistant;
 
 import com.github.reviewassistant.reviewassistant.models.Calculation;
 import com.google.common.collect.Ordering;
+import com.google.gerrit.extensions.annotations.PluginName;
 import com.google.gerrit.extensions.api.GerritApi;
 import com.google.gerrit.extensions.api.changes.ChangeApi;
 import com.google.gerrit.extensions.client.ListChangesOption;
@@ -22,10 +23,12 @@ import com.google.gerrit.server.patch.PatchListNotAvailableException;
 import com.google.gerrit.server.project.NoSuchProjectException;
 import com.google.inject.Inject;
 import com.google.inject.assistedinject.Assisted;
+
 import org.eclipse.jgit.api.BlameCommand;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.blame.BlameResult;
 import org.eclipse.jgit.diff.Edit;
+import org.eclipse.jgit.lib.Config;
 import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.revwalk.RevCommit;
 import org.slf4j.Logger;
@@ -51,8 +54,13 @@ enum AddReason {PLUS_TWO, EXPERIENCE}
  * recommended reviewers.
  */
 public class ReviewAssistant implements Runnable {
-
     private static final Logger log = LoggerFactory.getLogger(ReviewAssistant.class);
+    private static final int DEFAULT_MAX_REVIEWERS = 3;
+    private static final boolean DEFAULT_ENABLE_LOAD_BALANCING = false;
+    private static final int DEFAULT_PLUS_TWO_AGE = 8;
+    private static final int DEFAULT_PLUS_TWO_LIMIT = 10;
+    private static final boolean DEFAULT_PLUS_TWO_REQUIRED = true;
+
     public static boolean realUser;
     private final AccountByEmailCache emailCache;
     private final AccountCache accountCache;
@@ -75,54 +83,46 @@ public class ReviewAssistant implements Runnable {
     }
 
     @Inject
-    public ReviewAssistant(final PatchListCache patchListCache, final AccountCache accountCache,
-        final GerritApi gApi, final AccountByEmailCache emailCache, final PluginConfigFactory cfg,
-        @Assisted final RevCommit commit, @Assisted final Change change,
-        @Assisted final PatchSet ps, @Assisted final Repository repo,
-        @Assisted final Project.NameKey projectName) {
-        this.commit = commit;
-        this.change = change;
-        this.ps = ps;
-        this.patchListCache = patchListCache;
-        this.repo = repo;
-        this.accountCache = accountCache;
-        this.emailCache = emailCache;
-        this.projectName = projectName;
-        this.gApi = gApi;
-        int tmpMaxReviewers;
-        boolean tmpLoadBalancing;
-        int tmpPlusTwoAge;
-        int tmpPlusTwoLimit;
-        boolean tmpPlusTwoRequired;
-        try {
-            tmpMaxReviewers =
-                cfg.getProjectPluginConfigWithInheritance(projectName, "reviewassistant")
-                    .getInt("reviewers", "maxReviewers", 3);
-            tmpLoadBalancing =
-                cfg.getProjectPluginConfigWithInheritance(projectName, "reviewassistant")
-                    .getBoolean("reviewers", "enableLoadBalancing", false);
-            tmpPlusTwoAge =
-                cfg.getProjectPluginConfigWithInheritance(projectName, "reviewassistant")
-                    .getInt("reviewers", "plusTwoAge", 8);
-            tmpPlusTwoLimit =
-                cfg.getProjectPluginConfigWithInheritance(projectName, "reviewassistant")
-                    .getInt("reviewers", "plusTwoLimit", 10);
-            tmpPlusTwoRequired =
-                cfg.getProjectPluginConfigWithInheritance(projectName, "reviewassistant")
-                    .getBoolean("reviewers", "plusTwoRequired", true);
-        } catch (NoSuchProjectException e) {
-            log.error(e.getMessage(), e);
-            tmpMaxReviewers = 3;
-            tmpLoadBalancing = false;
-            tmpPlusTwoAge = 8;
-            tmpPlusTwoLimit = 10;
-            tmpPlusTwoRequired = true;
-        }
-        this.maxReviewers = tmpMaxReviewers;
-        this.loadBalancing = tmpLoadBalancing;
-        this.plusTwoAge = tmpPlusTwoAge;
-        this.plusTwoLimit = tmpPlusTwoLimit;
-        this.plusTwoRequired = tmpPlusTwoRequired;
+    public ReviewAssistant(PatchListCache patchListCache,
+        AccountCache accountCache,
+        GerritApi gApi,
+        AccountByEmailCache emailCache,
+        PluginConfigFactory cfg,
+        @PluginName String pluginName,
+        @Assisted RevCommit commit,
+        @Assisted Change change,
+        @Assisted PatchSet ps,
+        @Assisted Repository repo,
+        @Assisted Project.NameKey projectName) {
+      this.accountCache = accountCache;
+      this.patchListCache = patchListCache;
+      this.commit = commit;
+      this.gApi = gApi;
+      this.emailCache = emailCache;
+      this.change = change;
+      this.ps = ps;
+      this.repo = repo;
+      this.projectName = projectName;
+
+      Config pluginConfig = null;
+      try {
+        pluginConfig = cfg.getProjectPluginConfigWithInheritance(projectName, pluginName);
+      } catch (NoSuchProjectException e) {
+        log.error(e.getMessage(), e);
+      }
+      if (pluginConfig != null) {
+        this.maxReviewers = pluginConfig.getInt("reviewers", "maxReviewers", DEFAULT_MAX_REVIEWERS);
+        this.loadBalancing = pluginConfig.getBoolean("reviewers", "enableLoadBalancing", DEFAULT_ENABLE_LOAD_BALANCING);
+        this.plusTwoAge = pluginConfig.getInt("reviewers", "plusTwoAge", DEFAULT_PLUS_TWO_AGE);
+        this.plusTwoLimit = pluginConfig.getInt("reviewers", "plusTwoLimit", DEFAULT_PLUS_TWO_LIMIT);
+        this.plusTwoRequired = pluginConfig.getBoolean("reviewers", "plusTwoRequired", DEFAULT_PLUS_TWO_REQUIRED);
+      } else {
+        this.maxReviewers = DEFAULT_MAX_REVIEWERS;
+        this.loadBalancing = DEFAULT_ENABLE_LOAD_BALANCING;
+        this.plusTwoAge = DEFAULT_PLUS_TWO_AGE;
+        this.plusTwoLimit = DEFAULT_PLUS_TWO_LIMIT;
+        this.plusTwoRequired = DEFAULT_PLUS_TWO_REQUIRED;
+      }
     }
 
     /**
@@ -377,13 +377,11 @@ public class ReviewAssistant implements Runnable {
             return;
         }
 
-        List<Entry<Account, Integer>> mergeCandidates;
+        List<Entry<Account, Integer>> mergeCandidates = new ArrayList<>();
         if (plusTwoRequired) {
-            mergeCandidates = getApprovalAccounts();
-        } else {
-            //TODO Fugly
-            mergeCandidates = new ArrayList<>();
+            mergeCandidates.addAll(getApprovalAccounts());
         }
+
         List<Entry<Account, Integer>> blameCandidates = new LinkedList<>();
         for (PatchListEntry entry : patchList.getPatches()) {
             /*
