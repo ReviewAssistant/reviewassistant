@@ -61,7 +61,6 @@ public class ReviewAssistant implements Runnable {
     private static final int DEFAULT_PLUS_TWO_LIMIT = 10;
     private static final boolean DEFAULT_PLUS_TWO_REQUIRED = true;
 
-    public static boolean realUser;
     private final AccountByEmailCache emailCache;
     private final AccountCache accountCache;
     private final Change change;
@@ -454,9 +453,6 @@ public class ReviewAssistant implements Runnable {
             }
         }
 
-        //TODO Move into addReviewers?
-        realUser = true;
         addReviewers(change, finalMap);
-        realUser = false;
     }
 }
