@@ -40,7 +40,6 @@ class ChangeEventListener implements EventListener {
     private static final Logger log = LoggerFactory.getLogger(ChangeEventListener.class);
     private final ReviewAssistant.Factory reviewAssistantFactory;
     private final ThreadLocalRequestContext tl;
-    private final PluginUser pluginUser;
     private final IdentifiedUser.GenericFactory identifiedUserFactory;
     private final PluginConfigFactory cfg;
     private final String pluginName;
@@ -59,7 +58,6 @@ class ChangeEventListener implements EventListener {
         this.repoManager = repoManager;
         this.schemaFactory = schemaFactory;
         this.tl = tl;
-        this.pluginUser = pluginUser;
         this.identifiedUserFactory = identifiedUserFactory;
         this.cfg = cfg;
         this.pluginName = pluginName;
@@ -116,11 +114,7 @@ class ChangeEventListener implements EventListener {
                                 RequestContext old = tl.setContext(new RequestContext() {
 
                                     @Override public CurrentUser getCurrentUser() {
-                                        if (!ReviewAssistant.realUser) {
-                                            return pluginUser;
-                                        } else {
-                                            return identifiedUserFactory.create(change.getOwner());
-                                        }
+                                        return identifiedUserFactory.create(change.getOwner());
                                     }
 
                                     @Override public Provider<ReviewDb> getReviewDbProvider() {
